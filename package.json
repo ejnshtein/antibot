@@ -1,7 +1,7 @@
 {
   "name": "antibot_bot",
   "version": "0.0.1",
-  "description": "telegram bot to restrict ad bots to write in public chat's",
+  "description": "Telegram bot to restrict bots-like telegram users to send ads in public chats.",
   "repository": {
     "type": "git",
     "url": "https://github.com/ejnshtein/antibot"
