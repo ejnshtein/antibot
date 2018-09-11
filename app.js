@@ -45,7 +45,7 @@ bot.on('new_chat_members', async ctx => {
                 can_send_media_messages: false,
                 can_send_other_messages: false,
                 can_add_web_page_previews: false
-            })
+            }).catch(util.log)
         }
         ctx.reply('Confirm that you aren\'t a robot.', {
             reply_to_message_id: ctx.message.message_id,
@@ -74,9 +74,9 @@ bot.action(/notarobot:(\S+)/i, async ctx => {
                 can_send_media_messages: true,
                 can_send_other_messages: true,
                 can_add_web_page_previews: true
-            })
+            }).catch(util.log)
             await user.remove()
-            ctx.deleteMessage()
+            ctx.deleteMessage().catch(util.log)
         }
     }
 })
