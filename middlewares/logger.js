@@ -1,3 +1,0 @@
-module.exports = () => async (ctx, next) => {
-    next(ctx) // some day...
-}

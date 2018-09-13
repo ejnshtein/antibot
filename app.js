@@ -1,32 +1,37 @@
 const util = require('util')
 const cron = require('node-cron')
 const Telegraf = require('telegraf')
-const Telegram = require('telegraf/telegram')
-// const startTime = Math.round(Date.now() / 1000)
 const botConfig = require('./bot.config.json')
 const database = require('./database')
-// const onlyAdmin = require('./middlewares/only-admin')
-// const logger = require('./middlewares/logger')
+const middlewares = require('./middlewares')
 const bot = new Telegraf(botConfig.token)
-const telegram = new Telegram(botConfig.token)
 
 cron.schedule('* 0-23 * * *', async () => { // check each hour
-    const bots = await database.mongodb.collection('robots').find({ date: { $lte: Date.now() }, banned: { $not: { $eq: true } }}).exec()
-    if (bots.length) {
-        for (const bot of bots) {
-            await telegram.kickChatMember(bot.chatId, bot.userId, Math.round(Date.now() / 1000) + 10)
-            bot.banned = true
-            bot.markModified('banned')
-            await bot.save()
+    const robots = await database.mongodb.collection('robots').find({ date: { $lte: Date.now() }, banned: { $not: { $eq: true } }}).exec()
+    if (robots.length) {
+        for (const robot of robots) {
+            await bot.telegram.kickChatMember(bot.chatId, bot.userId, Math.round(Date.now() / 1000) + 10)
+            robot.banned = true
+            robot.markModified('banned')
+            await robot.save()
         }
     }
 })
 bot.start(ctx => {
-    util.log(ctx.from.id)
+    ctx.reply('Hello!\nI\'m telegram bot to restrict bots-like telegram users to send ads in public chats.\nFull description at <a href="https://github.com/ejnshtein/antibot#description">Github</a>',{
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+    })
 })
-bot.on('new_chat_members', async ctx => {
+bot.help(ctx => {
+    ctx.reply('Bot description at <a href="https://github.com/ejnshtein/antibot#description">Github</a>\nYou can also contact with bot developer -> @ejnshtein', {
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+    })
+})
+bot.on('new_chat_members', middlewares.botDetector, async ctx => {
     if (ctx.message.new_chat_members.some(el => el.is_bot)) {
-        const member = await telegram.getChatMember(ctx.message.chat.id, ctx.message.from.id).catch(util.log)
+        const member = await ctx.getChatMember(ctx.message.from.id).catch(util.log)
         if (member && (member.status === 'creator' || member.status === 'administrator')) {
             return
         }
@@ -35,7 +40,11 @@ bot.on('new_chat_members', async ctx => {
     for (const member of members) {
         const user = await database.mongodb.collection('robots').findOne({ userId: member.id, chatId: ctx.chat.id }).exec()
         if (!user) {
-            await database.mongodb.collection('robots').create({ userId: member.id, chatId: ctx.chat.id }) // will be banned in 2 days, see ./database/mongodb/schemas.js
+            const config = { userId: member.id, chatId: ctx.chat.id }
+            if (member.template) {
+                config.date = Date.now() + 7200000
+            }
+            await database.mongodb.collection('robots').create(config) // will be banned in 2 days OR if template detected in 2 hours, see ./database/mongodb/schemas.js
             await ctx.restrictChatMember(member.id, {
                 until_date: Math.round(Date.now() / 1000) + 10, // forever
                 can_send_messages: false,
@@ -44,13 +53,13 @@ bot.on('new_chat_members', async ctx => {
                 can_add_web_page_previews: false
             }).catch(util.log)
         }
-        ctx.reply('Confirm that you aren\'t a robot.', {
+        ctx.reply(`Confirm that you are not a robot.\nYou will be banned in 2 ${member.template ? 'hours' : 'days'}`, {
             reply_to_message_id: ctx.message.message_id,
             reply_markup: {
                 inline_keyboard: [
                     [
                         {
-                            text: 'I\'m not a robot!',
+                            text: 'I\'m not a robot.',
                             callback_data: `notarobot:${ctx.message.from.id}`
                         }
                     ]
