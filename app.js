@@ -18,7 +18,11 @@ cron.schedule('* 0-23 * * *', async () => { // check each hour
     }
 })
 bot.start(ctx => {
+<<<<<<< HEAD
     ctx.reply('Hello!\nI\'m telegram bot to restrict bots-like telegram users to send ads in public chats.\nFull description at <a href="https://github.com/ejnshtein/antibot#description">Github</a>', {
+=======
+    ctx.reply('Hello!\nI\'m telegram bot to restrict bots-like telegram users to send ads in public chats.\nFull description at <a href="https://github.com/ejnshtein/antibot#description">Github</a>',{
+>>>>>>> a002a211e714948a67d83abd3dfe0c3ff915bccd
         parse_mode: 'HTML',
         disable_web_page_preview: true
     })
