@@ -9,7 +9,8 @@ If not, bot will wait for 48 hour's and then ban user account in that chat.
 
 ## How to use
 
-Add [@antibotuser_bot](https://t.me/antibotuser_bot) to chat/superchat and give it admin rights. Then bot will work as I intended.
+Add [@antibotuser_bot](https://t.me/antibotuser_bot) to chat/superchat and give it admin rights. Then bot will work as I intended.  
+Here's test group, where you can look how it works: [t.me/antibot_testgroup](https://t.me/antibot_testgroup)
 
 ## Note
 
