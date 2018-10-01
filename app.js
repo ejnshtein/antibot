@@ -10,7 +10,7 @@ cron.schedule('* 0-23 * * *', async () => { // check each hour
     const robots = await database.mongodb.collection('robots').find({ date: { $lte: Date.now() }, banned: { $not: { $eq: true } }}).exec()
     if (robots.length) {
         for (const robot of robots) {
-            await bot.telegram.kickChatMember(bot.chatId, bot.userId, Math.round(Date.now() / 1000) + 10)
+            await bot.telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
             robot.banned = true
             robot.markModified('banned')
             await robot.save()
