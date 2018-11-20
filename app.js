@@ -7,14 +7,19 @@ const { botDetector, onlyAdmin, onlyPublic } = require('./middlewares')
 const bot = new Telegraf(botConfig.token)
 const { telegram } = bot
 
-schedule('* 0-23 * * *', async () => { // check each hour
+schedule('* 0-23 * * * *', async () => { // check each hour
     const robots = await collection('robots').find({ date: { $lte: Date.now() }, banned: { $not: { $eq: true } }}).exec()
     if (robots.length) {
         for (const robot of robots) {
-            await telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
-            robot.banned = true
-            robot.markModified('banned')
-            await robot.save()
+            telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
+                .then(() => {
+                    robot.banned = true
+                    robot.markModified('banned')
+                    return robot.save()
+                })
+                .catch(() => {
+                    return robot.remove()
+                })
         }
     }
 })
