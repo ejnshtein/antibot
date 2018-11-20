@@ -169,7 +169,7 @@ bot.command('removewhite', onlyPublic, onlyAdmin, async ctx => {
     }
 })
 
-bot.command('getid', ({ from, chat, reply }) => reply(`Your id: <code>${from.id}</code>\nChat id: <code>${chat.id}</code`, { parse_mode: 'HTML' }))
+bot.command('getid', ({ from, chat, reply }) => reply(`Your id: <code>${from.id}</code>\nChat id: <code>${chat.id}</code>`, { parse_mode: 'HTML' }))
 
 // forwardwhilelist
 bot.on('message', async (ctx, next) => {
