@@ -23,6 +23,8 @@ const collections = [{
         chatId: { type: Number },
         whiteListUsers: { type: [Number], default: [], required: false },
         forwardMessageAlert: { type: Boolean, default: false, required: true },
+        restrictFwdMessageFromChannel: { type: Boolean, default: true, required: true },
+        restrictFwdMessageFromBot: { type: Boolean, default: true, required: true },
         reportChatId: { type: Number, default: -1001370134614, required: false },
         delayBotBan: { type: Number, default: 3600000, required: true }
     })

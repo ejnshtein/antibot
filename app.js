@@ -177,9 +177,11 @@ bot.on('message', async (ctx, next) => {
             ctx.chat.type === 'group'
         ) && (
             message.forward_from_chat &&
-            message.forward_from_chat.type === 'channel' ||
+            message.forward_from_chat.type === 'channel' &&
+            chatConfig.restrictFwdMessageFromChannel ||
             message.forward_from &&
-            message.forward_from.is_bot === true
+            message.forward_from.is_bot === true &&
+            chatConfig.restrictFwdMessageFromBot
         ) &&
         !await onlyAdmin.isAdmin(ctx) &&
         !chatConfig.whiteListUsers.includes(ctx.from.id)
