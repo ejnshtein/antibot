@@ -1,6 +1,6 @@
 {
   "name": "antibot_bot",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "Telegram bot to restrict bots-like telegram users to send ads in public chats.",
   "repository": {
     "type": "git",
@@ -12,10 +12,9 @@
   },
   "dependencies": {
     "forever": "^0.15.3",
-    "mongoose": "^5.2.14",
-    "nedb": "^1.8.0",
-    "node-cron": "^2.0.1",
-    "telegraf": "^3.23.1"
+    "mongoose": "^5.3.13",
+    "node-cron": "^2.0.3",
+    "telegraf": "^3.25.0"
   },
   "author": "ejnshtein",
   "license": "ISC"

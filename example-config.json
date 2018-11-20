@@ -1,8 +1,5 @@
 {
     "database": {
-        "nedb": {
-            "collections": [""]
-        },
         "mongodb":{
             "url":"",
             "username":"",

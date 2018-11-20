@@ -1,5 +1,5 @@
 const mongoose = require('mongoose')
-const Schema = mongoose.Schema
+const { Schema } = mongoose
 const util = require('util')
 const config = require('../../config.json')
 const connection = mongoose.createConnection(`mongodb+srv://${config.database.mongodb.username}:${config.database.mongodb.password}@${config.database.mongodb.url}`, {
@@ -11,9 +11,20 @@ const collections = [{
     name: 'robots',
     schema: new Schema({
         userId: { type: Number },
+        tgUser: { type: Schema.Types.Mixed, required: false },
         chatId: { type: Number },
-        date: { type: Date, required: false, default: () => Date.now() + 172800000 },
+        date: { type: Date, required: false, default: () => Date.now() + 86400000 },
         banned: { type: Boolean, default: false }
+    })
+}, {
+    name: 'chats',
+    schema: new Schema({
+        chatTitle: { type: String },
+        chatId: { type: Number },
+        whiteListUsers: { type: [Number], default: [], required: false },
+        forwardMessageAlert: { type: Boolean, default: false, required: true },
+        reportChatId: { type: Number, default: -1001370134614, required: false },
+        delayBotBan: { type: Number, default: 3600000, required: true }
     })
 }]
 
