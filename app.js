@@ -219,6 +219,7 @@ bot.on('message', async (ctx, next) => {
                 }
             })
             await ctx.forwardMessage(chatConfig.reportChatId)
+            await ctx.deleteMessage()
         }
         if (chatConfig && chatConfig.forwardMessageAlert) {
             await ctx.reply(`Forwarding messages not allowed, <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name} ${ctx.from.last_name ? ctx.from.last_name : ''}</a>`, {
