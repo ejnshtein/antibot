@@ -4,7 +4,7 @@ const Telegraf = require('telegraf')
 const botConfig = require('./bot.config.json')
 const { mongodb: { collection } } = require('./database')
 const { botDetector, onlyAdmin, onlyPublic } = require('./middlewares')
-const bot = new Telegraf(botConfig.token)
+const bot = new Telegraf(botConfig.token, { channelMode: true })
 const { telegram } = bot
 
 schedule('* 0-23 * * * *', async () => { // check each hour
@@ -54,6 +54,10 @@ bot.help(({ reply }) => reply('Bot description at <a href="https://github.com/ej
 )
 
 bot.on('new_chat_members', botDetector, async ctx => {
+    const { chatConfig } = ctx.local
+    if (!(typeof chatConfig.captcha === 'undefined' && !chatConfig.captcha || typeof chatConfig.captcha === 'boolean' && chatConfig.captcha)) {
+        return
+    }
     if (ctx.message.new_chat_members.some(el => el.is_bot)) {
         const member = await ctx.getChatMember(ctx.message.from.id)
         if (member && (member.status === 'creator' || member.status === 'administrator')) {
@@ -169,13 +173,13 @@ bot.command('removewhite', onlyPublic, onlyAdmin, async ctx => {
     }
 })
 
-bot.command('getid', ({ from, chat, reply }) => reply(`Your id: <code>${from.id}</code>\nChat id: <code>${chat.id}</code>`, { parse_mode: 'HTML' }))
+bot.command('getid', ({ from, chat, reply, }) => reply(`Your id: <code>${from && from.id ? from.id : 'not available'}</code>\nChat id: <code>${chat.id}</code>`, { parse_mode: 'HTML' }))
 
 // forwardwhilelist
 bot.on('message', async (ctx, next) => {
     const { message } = ctx
     const { chatConfig } = ctx.local
-    // console.log(message.forward_from)
+    // console.log(message)
     if (
         (
             ctx.chat.type === 'supergroup' ||
@@ -186,16 +190,34 @@ bot.on('message', async (ctx, next) => {
             chatConfig.restrictFwdMessageFromChannel ||
             message.forward_from &&
             message.forward_from.is_bot === true &&
-            chatConfig.restrictFwdMessageFromBot
+            chatConfig.restrictFwdMessageFromBot // ||
+        //    (
+        //        /t\.me\/joinchat\/\S+/ig.test(message.text) ||
+        //        /t\.me\/joinchat\/\S+/ig.test(message.caption)
+        //    ) &&
+        //     chatConfig.restrictJoinchatMessage
         ) &&
         !await onlyAdmin.isAdmin(ctx) &&
         !chatConfig.whiteListUsers.includes(ctx.from.id)
         ) {
-        if (chatConfig && chatConfig.reportChatId) {
+        if (chatConfig && chatConfig.report && chatConfig.reportChatId) {
             const chat = await ctx.getChat()
-            // console.log(chat)
-            const { invite_link, title, username } = chat
-            await ctx.telegram.sendMessage(chatConfig.reportChatId, `Forwarded message detected in chat "${title} - ${invite_link ? invite_link : `@${username}`}\nBy <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name} ${ctx.from.last_name ? ctx.from.last_name : ''}</a>`, { parse_mode: 'HTML' })
+            // const text = message.text ? message.text : message.caption
+            // console.log(text.match(/t\.me\/joinchat\/(\S+)/i))
+            const { invite_link, title, username, id } = chat
+            await ctx.telegram.sendMessage(chatConfig.reportChatId, `Forwarded message detected in chat "${title}" - ${invite_link ? invite_link : username ?  `@${username}` : 'username not available'}\nBy <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name} ${ctx.from.last_name ? ctx.from.last_name : ''}</a>`, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Ban',
+                                callback_data: `fwd:ban=${id},${ctx.from.id},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
+                            }
+                        ]
+                    ]
+                }
+            })
             await ctx.forwardMessage(chatConfig.reportChatId)
         }
         if (chatConfig && chatConfig.forwardMessageAlert) {
@@ -203,9 +225,60 @@ bot.on('message', async (ctx, next) => {
                 parse_mode: 'HTML'
             })
         }
-        await ctx.deleteMessage()
     } else {
         next()
+    }
+})
+
+bot.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, async ctx => {
+    const value = ctx.match[1]
+    const chatId = ctx.match[2]
+    const userId = Number.parseInt(ctx.match[3])
+    const ttl = Number.parseInt(ctx.match[4])
+    if (Date.now() > ttl) {
+        return ctx.editMessageReplyMarkup({ inline_keyboard: [] })
+    }
+    const user = await telegram.getChatMember(chatId, ctx.from.id)
+    if (user && (user.status === 'creator' || user.status === 'administrator')) {
+        if (value === 'ban') {
+            telegram.kickChatMember(chatId, userId)
+                .then(() => {
+                    ctx.answerCbQuery('Done.')
+                    ctx.editMessageReplyMarkup({
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: 'Unban',
+                                    callback_data: `fwd:unban=${chatId},${userId},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
+                                }
+                            ]
+                        ]
+                    })
+                })
+                .catch(error => {
+                    ctx.answerCbQuery('Bot error - ' + error.description)
+                })
+        } else if (value === 'unban') {
+            telegram.unbanChatMember(chatId, userId)
+                .then(() => {
+                    ctx.answerCbQuery('Done.')
+                    ctx.editMessageReplyMarkup({
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: 'Ban',
+                                    callback_data: `fwd:ban=${chatId},${userId},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
+                                }
+                            ]
+                        ]
+                    })
+                })
+                .catch(error => {
+                    ctx.answerCbQuery('Bot error - ' + error.description)
+                })
+        }
+    } else {
+        ctx.answerCbQuery('You have no rigths in this chat.')
     }
 })
 

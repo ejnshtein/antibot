@@ -22,9 +22,12 @@ const collections = [{
         chatTitle: { type: String },
         chatId: { type: Number },
         whiteListUsers: { type: [Number], default: [], required: false },
+        captcha: { type: Boolean, default: true, required: false },
         forwardMessageAlert: { type: Boolean, default: false, required: true },
         restrictFwdMessageFromChannel: { type: Boolean, default: true, required: true },
-        restrictFwdMessageFromBot: { type: Boolean, default: true, required: true },
+        restrictFwdMessageFromBot: { type: Boolean, default: true, required: true,  },
+        restrictJoinchatMessage: { type: Boolean, default: true, required: false },
+        report: { type: Boolean, default: false, required: false },
         reportChatId: { type: Number, default: -1001370134614, required: false },
         delayBotBan: { type: Number, default: 3600000, required: true }
     })
