@@ -32,7 +32,8 @@ bot.use(async (ctx, next) => {
                 chatConfig: dbchat
             }
         } else {
-            const chatConfig = await collection('chats').create({ chatId: ctx.chat.id, chatTitle: ctx.chat.title })
+            const chat = await ctx.getChat()
+            const chatConfig = await collection('chats').create({ chatId: ctx.chat.id, chatTitle: ctx.chat.title, chatData: chat })
             ctx.local = {
                 chatConfig: chatConfig
             }

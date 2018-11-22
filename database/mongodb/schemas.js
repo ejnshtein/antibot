@@ -21,6 +21,7 @@ const collections = [{
     schema: new Schema({
         chatTitle: { type: String },
         chatId: { type: Number },
+        chatData: { type: Object, required: false, default: {} },
         whiteListUsers: { type: [Number], default: [], required: false },
         captcha: { type: Boolean, default: true, required: false },
         forwardMessageAlert: { type: Boolean, default: false, required: true },
