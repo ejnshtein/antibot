@@ -3,7 +3,7 @@ const { schedule } = require('node-cron')
 const Telegraf = require('telegraf')
 const botConfig = require('./bot.config.json')
 const { mongodb: { collection } } = require('./database')
-const { botDetector, onlyAdmin, onlyPublic } = require('./middlewares')
+const { botDetector, onlyAdmin, onlyPublic, ttlCheck } = require('./middlewares')
 const bot = new Telegraf(botConfig.token, { channelMode: true })
 const { telegram } = bot
 
@@ -190,12 +190,14 @@ bot.on('message', async (ctx, next) => {
             chatConfig.restrictFwdMessageFromChannel ||
             message.forward_from &&
             message.forward_from.is_bot === true &&
-            chatConfig.restrictFwdMessageFromBot // ||
-        //    (
-        //        /t\.me\/joinchat\/\S+/ig.test(message.text) ||
-        //        /t\.me\/joinchat\/\S+/ig.test(message.caption)
-        //    ) &&
-        //     chatConfig.restrictJoinchatMessage
+            chatConfig.restrictFwdMessageFromBot ||
+           (
+                message.text &&
+               /t\.me\/joinchat\/\S+/ig.test(message.text) ||
+                message.caption &&
+               /t\.me\/joinchat\/\S+/ig.test(message.caption)
+           ) &&
+           chatConfig.restrictJoinchatMessage
         ) &&
         !await onlyAdmin.isAdmin(ctx) &&
         !chatConfig.whiteListUsers.includes(ctx.from.id)
@@ -205,7 +207,7 @@ bot.on('message', async (ctx, next) => {
             // const text = message.text ? message.text : message.caption
             // console.log(text.match(/t\.me\/joinchat\/(\S+)/i))
             const { invite_link, title, username, id } = chat
-            await ctx.telegram.sendMessage(chatConfig.reportChatId, `Forwarded message detected in chat "${title}" - ${invite_link ? invite_link : username ?  `@${username}` : 'username not available'}\nBy <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name} ${ctx.from.last_name ? ctx.from.last_name : ''}</a>`, {
+            await ctx.telegram.sendMessage(chatConfig.reportChatId, `Suspicious message detected.\nChat "${title}" - ${invite_link ? invite_link : username ?  `@${username}` : 'username not available'}\nBy <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name} ${ctx.from.last_name ? ctx.from.last_name : ''}</a>`, {
                 parse_mode: 'HTML',
                 reply_markup: {
                     inline_keyboard: [
@@ -213,6 +215,10 @@ bot.on('message', async (ctx, next) => {
                             {
                                 text: 'Ban',
                                 callback_data: `fwd:ban=${id},${ctx.from.id},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
+                            },
+                            {
+                                text: 'Whitelist user',
+                                callback_data: `whitelist:${id},${ctx.from.id},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
                             }
                         ]
                     ]
@@ -231,14 +237,36 @@ bot.on('message', async (ctx, next) => {
     }
 })
 
-bot.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, async ctx => {
+bot.action(/whitelist:(\S+),(\S+),(\S+)/i, ttlCheck(3), async ctx => {
+    const chatId = ctx.match[1]
+    const userId = Number.parseInt(ctx.match[2])
+    const user = await telegram.getChatMember(chatId, ctx.from.id)
+    if (user && (user.status === 'creator' || user.status === 'administrator')) {
+        const chat = await collection('chats').findOne({ chatId: chatId }).exec()
+        if (chat) {
+            if (chat.whiteListUsers.some(el => el === userId)) {
+                chat.whiteListUsers = chat.whiteListUsers.filter(el => el !== userId)
+                chat.markModified('whiteListUsers')
+                await chat.save()
+                return ctx.answerCbQuery('User removed from whitelist')
+            } else {
+                chat.whiteListUsers.push(userId)
+                chat.markModified('whiteListUsers')
+                await chat.save()
+                ctx.answerCbQuery('User added to whitelist')
+            }
+        } else {
+            ctx.answerCbQuery('Chat not found.')
+        }
+    } else {
+        ctx.answerCbQuery('You have no rigths in this chat.')
+    }
+})
+
+bot.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
     const value = ctx.match[1]
     const chatId = ctx.match[2]
     const userId = Number.parseInt(ctx.match[3])
-    const ttl = Number.parseInt(ctx.match[4])
-    if (Date.now() > ttl) {
-        return ctx.editMessageReplyMarkup({ inline_keyboard: [] })
-    }
     const user = await telegram.getChatMember(chatId, ctx.from.id)
     if (user && (user.status === 'creator' || user.status === 'administrator')) {
         if (value === 'ban') {
@@ -251,6 +279,10 @@ bot.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, async ctx => {
                                 {
                                     text: 'Unban',
                                     callback_data: `fwd:unban=${chatId},${userId},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
+                                },
+                                {
+                                    text: 'Whitelist user',
+                                    callback_data: `whitelist:${chatId},${userId},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
                                 }
                             ]
                         ]
@@ -269,6 +301,10 @@ bot.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, async ctx => {
                                 {
                                     text: 'Ban',
                                     callback_data: `fwd:ban=${chatId},${userId},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
+                                },
+                                {
+                                    text: 'Whitelist user',
+                                    callback_data: `whitelist:${chatId},${userId},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
                                 }
                             ]
                         ]
