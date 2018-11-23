@@ -6,6 +6,9 @@ const { mongodb: { collection } } = require('./database')
 const { botDetector, onlyAdmin, onlyPublic, ttlCheck } = require('./middlewares')
 const bot = new Telegraf(botConfig.token, { channelMode: true })
 const { telegram } = bot
+telegram.getMe().then(info => {
+    bot.options.username = info.username
+})
 
 schedule('* 0-23 * * * *', async () => { // check each hour
     const robots = await collection('robots').find({ date: { $lte: Date.now() }, banned: { $not: { $eq: true } }}).exec()
@@ -198,7 +201,20 @@ bot.on('message', async (ctx, next) => {
                 message.caption &&
                /t\.me\/joinchat\/\S+/ig.test(message.caption)
            ) &&
-           chatConfig.restrictJoinchatMessage
+           (
+               chatConfig.restrictJoinchatMessage ||
+               typeof chatConfig.restrictJoinchatMessage === 'undefined'
+           ) ||
+           (
+            message.text &&
+           /t\.me\/\S+?bot\?=?start=?\S+/ig.test(message.text) ||
+            message.caption &&
+           /t\.me\/\S+?bot\?=?start=?\S+/ig.test(message.caption)
+            ) &&
+            (
+                chatConfig.restrictBotStartMessage ||
+                typeof chatConfig.restrictBotStartMessage === 'undefined'
+            )
         ) &&
         !await onlyAdmin.isAdmin(ctx) &&
         !chatConfig.whiteListUsers.includes(ctx.from.id)
@@ -280,10 +296,6 @@ bot.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
                                 {
                                     text: 'Unban',
                                     callback_data: `fwd:unban=${chatId},${userId},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
-                                },
-                                {
-                                    text: 'Whitelist user',
-                                    callback_data: `whitelist:${chatId},${userId},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
                                 }
                             ]
                         ]
