@@ -203,7 +203,6 @@ bot.command('getid', ({ from, chat, reply, }) => reply(`Your id: <code>${from &&
 bot.entity((entity, entityText, ctx) => {
     const { chatConfig } = ctx.local
     const testing = entity.type === 'text_link' && entity.url || entity.type === 'url' && entityText
-    console.log(testing, entity, entityText, ctx.local)
     return (
         onlyPublic.isPublic(ctx)
         && (
