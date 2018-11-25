@@ -3,12 +3,32 @@ const { schedule } = require('node-cron')
 const Telegraf = require('telegraf')
 const botConfig = require('./bot.config.json')
 const { mongodb: { collection } } = require('./database')
-const { botDetector, onlyAdmin, onlyPublic, ttlCheck } = require('./middlewares')
+const { templateDetector, onlyAdmin, onlyPublic, ttlCheck } = require('./middlewares')
 const bot = new Telegraf(botConfig.token, { channelMode: true })
 const { telegram } = bot
 telegram.getMe().then(info => {
     bot.options.username = info.username
 })
+
+function sendSuspiciuosMessage (reportChatId, chat, ctx) {
+    return ctx.telegram.sendMessage(reportChatId, `Suspicious message detected.\nChat "${chat.title}" - ${chat.invite_link ? chat.invite_link : chat.username ?  `@${chat.username}` : 'username not available'}\nBy <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name} ${ctx.from.last_name ? ctx.from.last_name : ''}</a>`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    {
+                        text: 'Ban',
+                        callback_data: `fwd:ban=${chat.id},${ctx.from.id},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
+                    },
+                    {
+                        text: 'Whitelist user',
+                        callback_data: `whitelist:${chat.id},${ctx.from.id},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
+                    }
+                ]
+            ]
+        }
+    })
+}
 
 schedule('* 0-23 * * * *', async () => { // check each hour
     const robots = await collection('robots').find({ date: { $lte: Date.now() }, banned: { $not: { $eq: true } }}).exec()
@@ -25,6 +45,7 @@ schedule('* 0-23 * * * *', async () => { // check each hour
                 })
         }
     }
+    // collection('robots').deleteMany({ date: { $gte: Date.now() - 1000 * 60 * 60 * 24 * 7 }, banned: { $eq: false } }).exec()
 })
 
 bot.use(async (ctx, next) => {
@@ -57,7 +78,7 @@ bot.help(({ reply }) => reply('Bot description at <a href="https://github.com/ej
     })
 )
 
-bot.on('new_chat_members', botDetector, async ctx => {
+bot.on('new_chat_members', templateDetector, async ctx => {
     const { chatConfig } = ctx.local
     if (!(typeof chatConfig.captcha === 'undefined' && !chatConfig.captcha || typeof chatConfig.captcha === 'boolean' && chatConfig.captcha)) {
         return
@@ -179,68 +200,72 @@ bot.command('removewhite', onlyPublic, onlyAdmin, async ctx => {
 
 bot.command('getid', ({ from, chat, reply, }) => reply(`Your id: <code>${from && from.id ? from.id : 'not available'}</code>\nChat id: <code>${chat.id}</code>`, { parse_mode: 'HTML' }))
 
+bot.entity((entity, entityText, ctx) => {
+    const { chatConfig } = ctx.local
+    const testing = entity.type === 'text_link' && entity.url || entity.type === 'url' && entityText
+    console.log(testing, entity, entityText, ctx.local)
+    return (
+        onlyPublic.isPublic(ctx)
+        && (
+            testing
+            && /t\.me\/joinchat\/\S+/ig.test(testing)
+            && (
+                chatConfig.restrictJoinchatMessage ||
+                typeof chatConfig.restrictJoinchatMessage === 'undefined'
+            )
+            ||
+            testing
+            && /t\.me\/\S+?bot\?=?start=?\S+/ig.test(testing)
+            && (
+                chatConfig.restrictBotStartMessage ||
+                typeof chatConfig.restrictBotStartMessage === 'undefined'
+            )
+        )
+    )
+}, onlyPublic.isPublic, async (ctx, next) => {
+    const { chatConfig } = ctx.local
+    if (
+        ctx.chat.isPublic
+        && !await onlyAdmin.isAdmin(ctx)
+        && !chatConfig.whiteListUsers.includes(ctx.from.id)
+        ) {
+            if (chatConfig && chatConfig.report && chatConfig.reportChatId) {
+                const chat = await ctx.getChat()
+                await sendSuspiciuosMessage(chatConfig.reportChatId, chat, ctx)
+                await ctx.forwardMessage(chatConfig.reportChatId)
+                await ctx.deleteMessage()
+            }
+            if (chatConfig && chatConfig.forwardMessageAlert) {
+                await ctx.reply(`Forwarding messages not allowed, <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name} ${ctx.from.last_name ? ctx.from.last_name : ''}</a>`, {
+                    parse_mode: 'HTML'
+                })
+            }
+        } else {
+            next()
+        }
+})
+
+
 // forwardwhilelist
-bot.on('message', async (ctx, next) => {
+bot.on('message', onlyPublic.isPublic, async (ctx, next) => {
     const { message } = ctx
     const { chatConfig } = ctx.local
-    // console.log(message)
     if (
-        (
-            ctx.chat.type === 'supergroup' ||
-            ctx.chat.type === 'group'
-        ) && (
+        ctx.chat.isPublic
+        && (
             message.forward_from_chat &&
             message.forward_from_chat.type === 'channel' &&
             chatConfig.restrictFwdMessageFromChannel ||
             message.forward_from &&
             message.forward_from.is_bot === true &&
-            chatConfig.restrictFwdMessageFromBot ||
-           (
-                message.text &&
-               /t\.me\/joinchat\/\S+/ig.test(message.text) ||
-                message.caption &&
-               /t\.me\/joinchat\/\S+/ig.test(message.caption)
-           ) &&
-           (
-               chatConfig.restrictJoinchatMessage ||
-               typeof chatConfig.restrictJoinchatMessage === 'undefined'
-           ) ||
-           (
-            message.text &&
-           /t\.me\/\S+?bot\?=?start=?\S+/ig.test(message.text) ||
-            message.caption &&
-           /t\.me\/\S+?bot\?=?start=?\S+/ig.test(message.caption)
-            ) &&
-            (
-                chatConfig.restrictBotStartMessage ||
-                typeof chatConfig.restrictBotStartMessage === 'undefined'
-            )
-        ) &&
-        !await onlyAdmin.isAdmin(ctx) &&
-        !chatConfig.whiteListUsers.includes(ctx.from.id)
+            chatConfig.restrictFwdMessageFromBot
+        )
+        && !await onlyAdmin.isAdmin(ctx)
+        && !chatConfig.whiteListUsers.includes(ctx.from.id)
         ) {
         if (chatConfig && chatConfig.report && chatConfig.reportChatId) {
             const chat = await ctx.getChat()
-            // const text = message.text ? message.text : message.caption
-            // console.log(text.match(/t\.me\/joinchat\/(\S+)/i))
-            const { invite_link, title, username, id } = chat
-            await ctx.telegram.sendMessage(chatConfig.reportChatId, `Suspicious message detected.\nChat "${title}" - ${invite_link ? invite_link : username ?  `@${username}` : 'username not available'}\nBy <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name} ${ctx.from.last_name ? ctx.from.last_name : ''}</a>`, {
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: 'Ban',
-                                callback_data: `fwd:ban=${id},${ctx.from.id},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
-                            },
-                            {
-                                text: 'Whitelist user',
-                                callback_data: `whitelist:${id},${ctx.from.id},${Date.now() + 1000 * 60 * 60 * 24 * 7}`
-                            }
-                        ]
-                    ]
-                }
-            })
+            await sendSuspiciuosMessage(chatConfig.reportChatId, chat, ctx)
             await ctx.forwardMessage(chatConfig.reportChatId)
             await ctx.deleteMessage()
         }

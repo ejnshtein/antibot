@@ -1,9 +1,9 @@
-module.exports = async ({ message, telegram, reply }, next) => {
+module.exports = async ({ message, telegram, reply, deleteMessage }, next) => {
     const member = await telegram.getChatMember(message.chat.id, message.from.id)
     if (member && (member.status === 'creator' || member.status === 'administrator')) {
         return next()
     } else {
-        reply('This command can be executed only by chat administrator.')
+        return deleteMessage()
     }
 }
 module.exports.isAdmin = async ({ message, telegram }) => {
