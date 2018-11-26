@@ -34,15 +34,14 @@ schedule('* 0-23 * * * *', async () => { // check each hour
     const robots = await collection('robots').find({ date: { $lte: Date.now() }, banned: { $not: { $eq: true } }}).exec()
     if (robots.length) {
         for (const robot of robots) {
-            telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
-                .then(() => {
-                    robot.banned = true
-                    robot.markModified('banned')
-                    return robot.save()
-                })
-                .catch(() => {
-                    return robot.remove()
-                })
+            try {
+                await telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
+            } catch (e) {
+                await robot.remove()
+            }
+            robot.banned = true
+            robot.markModified('banned')
+            await robot.save()
         }
     }
     // collection('robots').deleteMany({ date: { $gte: Date.now() - 1000 * 60 * 60 * 24 * 7 }, banned: { $eq: false } }).exec()
@@ -90,10 +89,14 @@ bot.on('new_chat_members', templateDetector, async ctx => {
 
     if (typeof chatConfig.restrictOtherMessages === 'boolean' && chatConfig.restrictOtherMessages) {
         for (const member of new_chat_members) {
-            await ctx.restrictChatMember(member.id, {
-                until_date: Math.round(Date.now() / 1000) + 10,
-                can_send_other_messages: false
-            })
+            try {
+                await ctx.restrictChatMember(member.id, {
+                    until_date: Math.round(Date.now() / 1000) + 10,
+                    can_send_other_messages: false
+                })
+            } catch (e) {
+                return ctx.reply(e.description)
+            }
         }
     }
 
@@ -107,13 +110,18 @@ bot.on('new_chat_members', templateDetector, async ctx => {
             if (member.template) {
                 config.date = Date.now() + 3600000
             }
+            try {
+                await ctx.restrictChatMember(member.id, {
+                    until_date: Math.round(Date.now() / 1000) + 10, // forever
+                    can_send_messages: false,
+                    can_send_media_messages: false,
+                    can_add_web_page_previews: false
+                })
+            } catch (e) {
+                return ctx.reply(e.description)
+            }
             await collection('robots').create(config) // will be banned in 1 day OR if template detected in 1 hour, see ./database/mongodb/schemas.js
-            await ctx.restrictChatMember(member.id, {
-                until_date: Math.round(Date.now() / 1000) + 10, // forever
-                can_send_messages: false,
-                can_send_media_messages: false,
-                can_add_web_page_previews: false
-            })
+            
         }
     }
     ctx.reply('Confirm that you are not a robot.', {
@@ -138,13 +146,17 @@ bot.action(/notarobot:(\S+)/i, async ctx => {
         if (!userIds.includes(ctx.from.id)) { return ctx.answerCbQuery('This message does not apply to you.')}
         const user = await collection('robots').findOne({chatId: ctx.chat.id, userId: ctx.from.id }).exec()
         if (user) {
-            await ctx.restrictChatMember(ctx.from.id, {
-                until_date: Math.round(Date.now() / 1000) + 10,
-                can_send_messages: true,
-                can_send_media_messages: true,
-                can_send_other_messages: typeof chatConfig.restrictOtherMessages === 'boolean' ? !chatConfig.restrictOtherMessages : true,
-                can_add_web_page_previews: true
-            })
+            try {
+                await ctx.restrictChatMember(ctx.from.id, {
+                    until_date: Math.round(Date.now() / 1000) + 10,
+                    can_send_messages: true,
+                    can_send_media_messages: true,
+                    can_send_other_messages: typeof chatConfig.restrictOtherMessages === 'boolean' ? !chatConfig.restrictOtherMessages : true,
+                    can_add_web_page_previews: true
+                })
+            } catch (e) {
+                return ctx.reply(e.description)
+            }
             await user.remove()
             if (userIds.filter(id => id !== ctx.from.id).length > 0) {
                 ctx.editMessageReplyMarkup({
@@ -158,7 +170,11 @@ bot.action(/notarobot:(\S+)/i, async ctx => {
                     ]
                 })
             } else {
-                ctx.deleteMessage()
+                try {
+                    await ctx.deleteMessage()
+                } catch (e) {
+                    return ctx.reply(e.description)
+                }
             }
         }
     }
@@ -211,24 +227,24 @@ bot.command('removewhite', onlyPublic, onlyAdmin, async ctx => {
 bot.command('getid', ({ from, chat, reply, }) => reply(`Your id: <code>${from && from.id ? from.id : 'not available'}</code>\nChat id: <code>${chat.id}</code>`, { parse_mode: 'HTML' }))
 
 bot.entity((entity, entityText, ctx) => {
+    if (!onlyPublic.isPublic(ctx)) {
+        return false
+    }
     const { chatConfig } = ctx.state
     const testing = entity.type === 'text_link' && entity.url || entity.type === 'url' && entityText
     return (
-        onlyPublic.isPublic(ctx)
+        testing
+        && /t\.me\/joinchat\/\S+/ig.test(testing)
         && (
-            testing
-            && /t\.me\/joinchat\/\S+/ig.test(testing)
-            && (
-                chatConfig.restrictJoinchatMessage ||
-                typeof chatConfig.restrictJoinchatMessage === 'undefined'
-            )
-            ||
-            testing
-            && /t\.me\/\S+?bot\?=?start=?\S+/ig.test(testing)
-            && (
-                chatConfig.restrictBotStartMessage ||
-                typeof chatConfig.restrictBotStartMessage === 'undefined'
-            )
+            chatConfig.restrictJoinchatMessage ||
+            typeof chatConfig.restrictJoinchatMessage === 'undefined'
+        )
+        ||
+        testing
+        && /t\.me\/\S+?bot\?=?start=?\S+/ig.test(testing)
+        && (
+            chatConfig.restrictBotStartMessage ||
+            typeof chatConfig.restrictBotStartMessage === 'undefined'
         )
     )
 }, onlyPublic.isPublic, async (ctx, next) => {
@@ -242,12 +258,16 @@ bot.entity((entity, entityText, ctx) => {
                 const chat = await ctx.getChat()
                 await sendSuspiciuosMessage(chatConfig.reportChatId, chat, ctx)
                 await ctx.forwardMessage(chatConfig.reportChatId)
-                await ctx.deleteMessage()
             }
             if (chatConfig && chatConfig.forwardMessageAlert) {
                 await ctx.reply(`Forwarding messages not allowed, <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name} ${ctx.from.last_name ? ctx.from.last_name : ''}</a>`, {
                     parse_mode: 'HTML'
                 })
+            }
+            try {
+                await ctx.deleteMessage()
+            } catch (e) {
+                return ctx.reply(e.description)
             }
         } else {
             next()
@@ -276,12 +296,16 @@ bot.on('message', onlyPublic.isPublic, async (ctx, next) => {
             const chat = await ctx.getChat()
             await sendSuspiciuosMessage(chatConfig.reportChatId, chat, ctx)
             await ctx.forwardMessage(chatConfig.reportChatId)
-            await ctx.deleteMessage()
         }
         if (chatConfig && chatConfig.forwardMessageAlert) {
             await ctx.reply(`Forwarding messages not allowed, <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name} ${ctx.from.last_name ? ctx.from.last_name : ''}</a>`, {
                 parse_mode: 'HTML'
             })
+        }
+        try {
+            await ctx.deleteMessage()
+        } catch (e) {
+            return ctx.reply(e.description)
         }
     } else {
         next()
