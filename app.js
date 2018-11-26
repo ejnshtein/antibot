@@ -52,13 +52,13 @@ bot.use(async (ctx, next) => {
     if (ctx.chat.type === 'supergroup' || ctx.chat.type === 'group') {
         const dbchat = await collection('chats').findOne({ chatId: ctx.chat.id }).exec()
         if (dbchat) {
-            ctx.local = {
+            ctx.state = {
                 chatConfig: dbchat
             }
         } else {
             const chat = await ctx.getChat()
             const chatConfig = await collection('chats').create({ chatId: ctx.chat.id, chatTitle: ctx.chat.title, chatData: chat })
-            ctx.local = {
+            ctx.state = {
                 chatConfig: chatConfig
             }
         }
@@ -79,10 +79,7 @@ bot.help(({ reply }) => reply('Bot description at <a href="https://github.com/ej
 )
 
 bot.on('new_chat_members', templateDetector, async ctx => {
-    const { chatConfig } = ctx.local
-    if (!(typeof chatConfig.captcha === 'undefined' && !chatConfig.captcha || typeof chatConfig.captcha === 'boolean' && chatConfig.captcha)) {
-        return
-    }
+    const { chatConfig } = ctx.state
     if (ctx.message.new_chat_members.some(el => el.is_bot)) {
         const member = await ctx.getChatMember(ctx.message.from.id)
         if (member && (member.status === 'creator' || member.status === 'administrator')) {
@@ -90,6 +87,19 @@ bot.on('new_chat_members', templateDetector, async ctx => {
         }
     }
     const { new_chat_members } = ctx.message
+
+    if (typeof chatConfig.restrictOtherMessages === 'boolean' && chatConfig.restrictOtherMessages) {
+        for (const member of new_chat_members) {
+            await ctx.restrictChatMember(member.id, {
+                until_date: Math.round(Date.now() / 1000) + 10,
+                can_send_other_messages: false
+            })
+        }
+    }
+
+    if (!(typeof chatConfig.captcha === 'undefined' && !chatConfig.captcha || typeof chatConfig.captcha === 'boolean' && chatConfig.captcha)) {
+        return
+    }
     for (const member of new_chat_members) {
         const user = await collection('robots').findOne({ userId: member.id, chatId: ctx.chat.id }).exec()
         if (!user) {
@@ -102,7 +112,6 @@ bot.on('new_chat_members', templateDetector, async ctx => {
                 until_date: Math.round(Date.now() / 1000) + 10, // forever
                 can_send_messages: false,
                 can_send_media_messages: false,
-                can_send_other_messages: false,
                 can_add_web_page_previews: false
             })
         }
@@ -122,6 +131,7 @@ bot.on('new_chat_members', templateDetector, async ctx => {
     })
 })
 bot.action(/notarobot:(\S+)/i, async ctx => {
+    const { chatConfig } = ctx.state
     // console.log(ctx.match)
     if (/[0-9,]+/i.test(ctx.match[1])) {
         const userIds = ctx.match[1].match(/[0-9]+/ig).map(Number.parseInt)
@@ -132,7 +142,7 @@ bot.action(/notarobot:(\S+)/i, async ctx => {
                 until_date: Math.round(Date.now() / 1000) + 10,
                 can_send_messages: true,
                 can_send_media_messages: true,
-                can_send_other_messages: true,
+                can_send_other_messages: typeof chatConfig.restrictOtherMessages === 'boolean' ? !chatConfig.restrictOtherMessages : true,
                 can_add_web_page_previews: true
             })
             await user.remove()
@@ -158,7 +168,7 @@ bot.command('addwhite', onlyPublic, onlyAdmin, async ctx => {
     if (ctx.message.reply_to_message) { // ctx.message.reply_to_message.from.id
         if (ctx.message.reply_to_message.from.is_bot) { return ctx.reply('This is bot.') }
         // const whiteListChat = await collection('chats').findOne({ chatId: ctx.chat.id })
-        const { chatConfig } = ctx.local
+        const { chatConfig } = ctx.state
         if (chatConfig) {
             if (chatConfig.whiteListUsers.includes(ctx.message.reply_to_message.from.id)) {
                 return ctx.reply('User already in white list')
@@ -183,7 +193,7 @@ bot.command('addwhite', onlyPublic, onlyAdmin, async ctx => {
 bot.command('removewhite', onlyPublic, onlyAdmin, async ctx => {
     if (ctx.message.reply_to_message) { // ctx.message.reply_to_message.from.id
         if (ctx.message.reply_to_message.from.is_bot) { return ctx.reply('This is bot.') }
-        const { chatConfig } = ctx.local
+        const { chatConfig } = ctx.state
         if (chatConfig) {
             // console.log(chatConfig)
             chatConfig.whiteListUsers = chatConfig.whiteListUsers.filter(id => id !== ctx.message.reply_to_message.from.id)
@@ -201,7 +211,7 @@ bot.command('removewhite', onlyPublic, onlyAdmin, async ctx => {
 bot.command('getid', ({ from, chat, reply, }) => reply(`Your id: <code>${from && from.id ? from.id : 'not available'}</code>\nChat id: <code>${chat.id}</code>`, { parse_mode: 'HTML' }))
 
 bot.entity((entity, entityText, ctx) => {
-    const { chatConfig } = ctx.local
+    const { chatConfig } = ctx.state
     const testing = entity.type === 'text_link' && entity.url || entity.type === 'url' && entityText
     return (
         onlyPublic.isPublic(ctx)
@@ -222,7 +232,7 @@ bot.entity((entity, entityText, ctx) => {
         )
     )
 }, onlyPublic.isPublic, async (ctx, next) => {
-    const { chatConfig } = ctx.local
+    const { chatConfig } = ctx.state
     if (
         ctx.chat.isPublic
         && !await onlyAdmin.isAdmin(ctx)
@@ -248,7 +258,7 @@ bot.entity((entity, entityText, ctx) => {
 // forwardwhilelist
 bot.on('message', onlyPublic.isPublic, async (ctx, next) => {
     const { message } = ctx
-    const { chatConfig } = ctx.local
+    const { chatConfig } = ctx.state
     if (
         ctx.chat.isPublic
         && (

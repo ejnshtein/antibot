@@ -29,6 +29,7 @@ const collections = [{
         restrictFwdMessageFromBot: { type: Boolean, default: true, required: true,  },
         restrictJoinchatMessage: { type: Boolean, default: true, required: false },
         restrictBotStartMessage: { type: Boolean, default: true, required: false },
+        restrictOtherMessages: { type: Boolean, default: false, required: false },
         report: { type: Boolean, default: false, required: false },
         reportChatId: { type: Number, default: -1001360010005, required: false },
         delayBotBan: { type: Number, default: 3600000, required: true }
