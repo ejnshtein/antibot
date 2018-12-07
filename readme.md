@@ -23,21 +23,48 @@ Here's test group, where you can look how it works: [t.me/antibot_testgroup](htt
 
 ```json
     {
-        "whiteListUsers":[],
-        "captcha":true,
-        "forwardMessageAlert":false,
-        "restrictFwdMessageFromChannel":true,
-        "restrictFwdMessageFromBot":true,
-        "restrictJoinchatMessage":true,
-        "restrictBotStartMessage":true,
+        "whiteListUsers": [],
+        "captcha": true,
+        "forwardMessageAlert": false,
+        "restrictFwdMessageFromChannel": true,
+        "restrictFwdMessageFromBot": true,
+        "restrictJoinchatMessage": true,
+        "restrictBotStartMessage": true,
         "restrictOtherMessages": false,
-        "report":false,
-        "reportChatId":-1001360010005
+        "report": false,
+        "delayBotBan": 3600000
     }
 ```
 
-If you want to change them, contact me.
+## Properties description
+
+| Property | Type | Default | Description |  
+| - | - | - | - |
+| whiteListUsers | `number[]` | true |An array of whitelisted user ids. Can be controlled with commands `/addwhite` and `/removewhite` (Use them with *reply* on user message). |  
+| captcha | `boolean` | true | Use captcha feature when user join chat. (It will filter these bots which just join chat without any other actions except sending ads.) |
+| forwardMessageAlert | `boolean` | true | Send message with info that some actions are forbidden in this chat (forwarding message from channel, from bot or sending message with these links type: `t.me/joinchat` and `t.me/somebotusername?start=data`) |
+| restrictFwdMessageFromChannel | `boolean` | true | Restrict forwarding message from channels which not located in white channels list. _*_|
+| restrictFwdMessageFromBot | `boolean` | true | Restrict forwarding message from bots. |
+| restrictJoinchatMessage | `boolean` | true | Restrict messages which contains `t.me/joinchat` links type. _*_ |
+| restrictBotStartMessage | `boolean` | true | Restrict messages which contains `t.me/somebotusername?start=data` links type. _*_ |
+| restrictOtherMessages | `boolean` | false | Restrict messages from inline bots. (Yes, it will also disable gifs, stickers and games. [Full description](https://core.telegram.org/bots/api#restrictchatmember).) |
+| report | `boolean` | false | Report suspicious messages to report chat. |
+| [reportChatId] | `number` | 0 | Report chat id |
+| delayBotBan | `number` | 3600000 (ms) | Default ban delay if template detector detects bot-like account. |
+| [customBanDelay] | `number` | 0 (ms) | Default ban delay for captcha. |
+
+_*_ - Most of ads-bots use it.
+
+Currently, change these settings can only me (bot developer) so,  
+**if you want to use your own configs, [contact me.](#contact)**
+
+## Note
+
+Also in the bot, there is a whitelist of channels from which the bot allows forwarding of messages.  
+**Only I** can add or delete channels from this list, so contact me if you wanna add a channel to it.
 
 ## Contact
 
-[Telegram](https://t.me/ejnshtein)
+[My telegram](https://t.me/ejnshtein)  
+[Demo group](https://t.me/antibot_testgroup)  
+[Bot](https://t.me/antibotuser_bot)
