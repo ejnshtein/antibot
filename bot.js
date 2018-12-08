@@ -31,7 +31,7 @@ bot.use(async (ctx, next) => {
   next()
 })
 
-schedule('* 0-23 * * * *', async () => { // check each hour
+schedule(' */10 * * * *', async () => { // check 10 mins
   const robots = await collection('robots').find({ date: { $lte: Date.now() }, banned: { $not: { $eq: true } } }).exec()
   if (robots.length) {
     for (const robot of robots) {
@@ -60,6 +60,7 @@ schedule('* 0-23 * * * *', async () => { // check each hour
       robot.markModified('banned')
       await robot.save()
     }
+    report({ message: `Banned ${robots.length} bots.` })
   }
   // collection('robots').deleteMany({ date: { $gte: Date.now() - 1000 * 60 * 60 * 24 * 7 }, banned: { $eq: true } }).exec()
 })

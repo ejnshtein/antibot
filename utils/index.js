@@ -3,7 +3,7 @@ const { Telegram } = require('telegraf')
 const telegram = new Telegram(process.env.BOT_TOKEN)
 
 const utils = {
-  report: (error, prefix, extra = {}) => {
+  report (error, prefix, extra = {}) {
     try {
       const bypassList = [
         'message to edit not found',
