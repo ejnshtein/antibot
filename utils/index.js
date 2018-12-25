@@ -3,7 +3,7 @@ const { Telegram } = require('telegraf')
 const telegram = new Telegram(process.env.BOT_TOKEN)
 
 const utils = {
-  report (error, prefix, extra = {}) {
+  report (err, prefix, extra = {}) {
     try {
       const bypassList = [
         'message to edit not found',
@@ -25,17 +25,18 @@ const utils = {
         'End of file',
         'does not have storage.buckets.create access to project',
         'bot is not a member',
-        'Gateway',
+        'Gateway'
       ]
       for (const item of bypassList) {
         if (err.message && err.message.indexOf(item) > -1) {
           return
         }
       }
-      telegram.sendMessage(process.env.ADMIN_ID, `${prefix ? ` (${prefix})` : ''}:\nMessage: ${err.message}\n\`\`\`${JSON.stringify(err, undefined, 2)}\`\`\``, Object.assign({
-        parse_mode: 'HTML',
+      telegram.sendMessage(process.env.ADMIN_ID, `${prefix ? ` (${prefix})` : ''}:\nMessage: ${err.message || JSON.stringify(err)}\n\`\`\`${JSON.stringify(err, undefined, 2)}\`\`\``, Object.assign({
+        parse_mode: 'markdown'
       }, extra))
-    } catch {
+    } catch (e) {
+      console.log(e)
       // Do nothing
     }
   },
@@ -59,11 +60,24 @@ const utils = {
               text: 'Whitelist user',
               callback_data: `whitelist:${ctx.chat.id},${ctx.from.id},${utils.reportMsgTtl(7)}`
             }
+          ], [
+            {
+              text: 'Restore message',
+              callback_data: `restore:${ctx.chat.id},${ctx.from.id},${fwdMessage.message_id},${utils.reportMsgTtl(1)}`
+            }
           ]
         ]
       },
       reply_to_message_id: fwdMessage.message_id
     })
+  },
+  async isChatAdmin (chatId, userId) {
+    const user = await telegram.getChatMember(chatId, userId)
+    if (user && (user.status === 'creator' || user.status === 'administrator')) {
+      return true
+    } else {
+      return false
+    }
   }
 }
 

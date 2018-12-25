@@ -25,7 +25,9 @@ const collections = [{
     tgUser: { type: Schema.Types.Mixed, required: false },
     chatId: { type: Number },
     date: { type: Date, required: false, default: () => Date.now() + 86400000 },
-    banned: { type: Boolean, default: false }
+    banned: { type: Boolean, default: false },
+    joinMessageId: { type: Number, required: false },
+    captchaMessageId: { type: Number, required: false }
   })
 }, {
   name: 'chats',

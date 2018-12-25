@@ -11,7 +11,7 @@ telegram.getMe()
     bot.options.username = info.username
   })
 
-bot.context.db = collection
+bot.context.collection = collection
 
 bot.use(async (ctx, next) => {
   if (ctx.chat.type === 'supergroup' || ctx.chat.type === 'group') {
@@ -37,24 +37,14 @@ schedule(' */10 * * * *', async () => { // check 10 mins
     for (const robot of robots) {
       try {
         await telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
+        if (robot.joinMessageId) {
+          await telegram.deleteMessage(robot.chatId, robot.joinMessageId)
+        }
+        if (robot.captchaMessageId) {
+          await telegram.deleteMessage(robot.chatId, robot.captchaMessageId)
+        }
       } catch (e) {
         return report(e, 'cron.schedule')
-        //  {
-        //     reply_markup: {
-        //       inline_keyboard: [
-        //         [
-        //           {
-        //             text: 'Remove user from db',
-        //             callback_data: `rm:user=${robot.chatId},${robot.userId}`
-        //           },
-        //           {
-        //             text: 'Try ban again',
-        //             callback_data: `ban:user=${robot.chatId},${robot.userId}`
-        //           }
-        //         ]
-        //       ]
-        //     }
-        //   }
       }
       robot.banned = true
       robot.markModified('banned')

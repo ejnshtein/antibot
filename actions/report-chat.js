@@ -2,7 +2,7 @@ const { bot } = require('./')
 const { ttlCheck } = require('../middlewares')
 const { telegram } = bot
 const { mongodb: { collection } } = require('../database')
-const { reportMsgTtl, report } = require('../utils')
+const { reportMsgTtl, report, isChatAdmin } = require('../utils')
 
 bot.action(/whitelist:(\S+),(\S+),(\S+)/i, ttlCheck(3), async ctx => {
   const chatId = ctx.match[1]
@@ -111,6 +111,66 @@ bot.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
         ]
       })
     }
+  } else {
+    ctx.answerCbQuery('You have no rigths in this chat.')
+  }
+})
+
+bot.action(/restore:(\S+),(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
+  const chatId = ctx.match[1]
+  const fromId = Number.parseInt(ctx.match[2])
+  const messageId = Number.parseInt(ctx.match[3])
+  if (await isChatAdmin(chatId, ctx.from.id)) {
+    let newMsg
+    try {
+      newMsg = await ctx.telegram.forwardMessage(chatId, ctx.chat.id, messageId)
+    } catch (e) {
+      return ctx.reply(e.description)
+    }
+    ctx.editMessageReplyMarkup({ inline_keyboard: [
+      [
+        {
+          text: 'Delete restored message',
+          callback_data: `deleterestored:${chatId},${fromId},${newMsg.message_id},${reportMsgTtl(1)}`
+        }
+      ]
+    ] })
+    ctx.answerCbQuery('Message restored')
+  } else {
+    ctx.answerCbQuery('You have no rigths in this chat.')
+  }
+})
+
+bot.action(/deleterestored:(\S+),(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
+  const chatId = ctx.match[1]
+  const fromId = Number.parseInt(ctx.match[2])
+  const messageId = Number.parseInt(ctx.match[3])
+  // console.log(ctx.callbackQuery.message.reply_to_message)
+  if (await isChatAdmin(chatId, ctx.from.id)) {
+    let result
+    try {
+      result = await ctx.telegram.deleteMessage(chatId, messageId)
+    } catch (e) {
+      return ctx.reply(e.description)
+    }
+    ctx.editMessageReplyMarkup({ inline_keyboard: [
+      [
+        {
+          text: 'Ban',
+          callback_data: `fwd:ban=${chatId},${fromId},${reportMsgTtl(7)}`
+        },
+        {
+          text: 'Whitelist user',
+          callback_data: `whitelist:${chatId},${fromId},${reportMsgTtl(7)}`
+        }
+      ], [
+        {
+          text: 'Restore message',
+          callback_data: `restore:${chatId},${fromId},${ctx.callbackQuery.message.reply_to_message.message_id},${reportMsgTtl(1)}`
+        }
+      ]
+    ] })
+    ctx.answerCbQuery('Message deleted: ' + result.toString())
   } else {
     ctx.answerCbQuery('You have no rigths in this chat.')
   }

@@ -29,10 +29,29 @@ bot.on('new_chat_members', templateDetector, async ctx => {
   if (!((typeof chatConfig.captcha === 'undefined' && !chatConfig.captcha) || (typeof chatConfig.captcha === 'boolean' && chatConfig.captcha))) {
     return
   }
+  const captchaMessage = await ctx.reply('Confirm that you are not a robot.', {
+    reply_to_message_id: ctx.message.message_id,
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: 'I\'m not a robot.',
+            callback_data: `notarobot:${ctx.message.new_chat_members.map(user => user.id).join(',')}`
+          }
+        ]
+      ]
+    }
+  })
   for (const member of new_chat_members) {
     const user = await collection('robots').findOne({ userId: member.id, chatId: ctx.chat.id }).exec()
     if (!user) {
-      const config = { userId: member.id, chatId: ctx.chat.id, tgUser: member }
+      const config = {
+        userId: member.id,
+        chatId: ctx.chat.id,
+        tgUser: member,
+        joinMessageId: ctx.message.message_id,
+        captchaMessageId: captchaMessage.message_id
+      }
 
       if (chatConfig && chatConfig.customBanDelay) {
         config.date = Date.now() + chatConfig.customBanDelay
@@ -53,17 +72,4 @@ bot.on('new_chat_members', templateDetector, async ctx => {
       await collection('robots').create(config) // will be banned in 1 day OR if template detected in 1 hour, see ./database/mongodb/schemas.js
     }
   }
-  ctx.reply('Confirm that you are not a robot.', {
-    reply_to_message_id: ctx.message.message_id,
-    reply_markup: {
-      inline_keyboard: [
-        [
-          {
-            text: 'I\'m not a robot.',
-            callback_data: `notarobot:${ctx.message.new_chat_members.map(user => user.id).join(',')}`
-          }
-        ]
-      ]
-    }
-  })
 })

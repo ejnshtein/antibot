@@ -3,3 +3,4 @@ config.json
 package-lock.json
 bot.config.json
 .env
+.vscode
