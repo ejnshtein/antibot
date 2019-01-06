@@ -1,17 +1,28 @@
-const { bot } = require('./')
-const { templateDetector } = require('../middlewares')
-const { mongodb: { collection } } = require('../database')
+const {
+  templateDetector
+} = require('../middlewares')
+const Composer = require('telegraf/composer')
+const composer = new Composer()
+const {
+  mongodb: {
+    collection
+  }
+} = require('../database')
 
-bot.on('new_chat_members', templateDetector, async ctx => {
+composer.on('new_chat_members', templateDetector, async ctx => {
   /* eslint camelcase: 0 */
-  const { chatConfig } = ctx.state
+  const {
+    chatConfig
+  } = ctx.state
   if (ctx.message.new_chat_members.some(el => el.is_bot)) {
     const member = await ctx.getChatMember(ctx.message.from.id)
     if (member && (member.status === 'creator' || member.status === 'administrator')) {
       return
     }
   }
-  const { new_chat_members } = ctx.message
+  const {
+    new_chat_members
+  } = ctx.message
 
   if (typeof chatConfig.restrictOtherMessages === 'boolean' && chatConfig.restrictOtherMessages) {
     for (const member of new_chat_members) {
@@ -33,17 +44,18 @@ bot.on('new_chat_members', templateDetector, async ctx => {
     reply_to_message_id: ctx.message.message_id,
     reply_markup: {
       inline_keyboard: [
-        [
-          {
-            text: 'I\'m not a robot.',
-            callback_data: `notarobot:${ctx.message.new_chat_members.map(user => user.id).join(',')}`
-          }
-        ]
+        [{
+          text: 'I\'m not a robot.',
+          callback_data: `notarobot:${ctx.message.new_chat_members.map(user => user.id).join(',')}`
+        }]
       ]
     }
   })
   for (const member of new_chat_members) {
-    const user = await collection('robots').findOne({ userId: member.id, chatId: ctx.chat.id }).exec()
+    const user = await collection('robots').findOne({
+      userId: member.id,
+      chatId: ctx.chat.id
+    }).exec()
     if (!user) {
       const config = {
         userId: member.id,
@@ -73,3 +85,7 @@ bot.on('new_chat_members', templateDetector, async ctx => {
     }
   }
 })
+
+module.exports = bot => {
+  bot.use(composer.middleware())
+}

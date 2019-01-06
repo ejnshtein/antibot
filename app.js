@@ -1,3 +1,3 @@
-require('./bot')
-require('./commands/commands')
-require('./actions/actions')
+const { bot } = require('./bot')
+require('./commands')(bot)
+require('./actions')(bot)

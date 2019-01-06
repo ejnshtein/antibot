@@ -1,10 +1,22 @@
-require('dotenv').config({ path: './.env' })
-const { schedule } = require('node-cron')
+require('dotenv').config({
+  path: './.env'
+})
+const {
+  schedule
+} = require('node-cron')
 const Telegraf = require('telegraf')
-const { mongodb: { collection } } = require('./database')
-const { report } = require('./utils')
+const {
+  mongodb: {
+    collection
+  }
+} = require('./database')
+const {
+  report
+} = require('./utils')
 const bot = new Telegraf(process.env.BOT_TOKEN)
-const { telegram } = bot
+const {
+  telegram
+} = bot
 
 telegram.getMe()
   .then(info => {
@@ -12,17 +24,26 @@ telegram.getMe()
   })
 
 bot.context.collection = collection
+bot.context.db = {
+  collection
+}
 
 bot.use(async (ctx, next) => {
   if (ctx.chat.type === 'supergroup' || ctx.chat.type === 'group') {
-    const dbchat = await collection('chats').findOne({ chatId: ctx.chat.id }).exec()
+    const dbchat = await collection('chats').findOne({
+      chatId: ctx.chat.id
+    }).exec()
     if (dbchat) {
       ctx.state = {
         chatConfig: dbchat
       }
     } else {
       const chat = await ctx.getChat()
-      const chatConfig = await collection('chats').create({ chatId: ctx.chat.id, chatTitle: ctx.chat.title, chatData: chat })
+      const chatConfig = await collection('chats').create({
+        chatId: ctx.chat.id,
+        chatTitle: ctx.chat.title,
+        chatData: chat
+      })
       ctx.state = {
         chatConfig: chatConfig
       }
@@ -32,25 +53,53 @@ bot.use(async (ctx, next) => {
 })
 
 schedule(' */10 * * * *', async () => { // check 10 mins
-  const robots = await collection('robots').find({ date: { $lte: Date.now() }, banned: { $not: { $eq: true } } }).exec()
+  const robots = await collection('robots').find({
+    date: {
+      $lte: Date.now()
+    },
+    banned: {
+      $not: {
+        $eq: true
+      }
+    }
+  }).exec()
   if (robots.length) {
     for (const robot of robots) {
       try {
         await telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
-        if (robot.joinMessageId) {
-          await telegram.deleteMessage(robot.chatId, robot.joinMessageId)
-        }
-        if (robot.captchaMessageId) {
-          await telegram.deleteMessage(robot.chatId, robot.captchaMessageId)
-        }
       } catch (e) {
-        return report(e, 'cron.schedule')
+        return report(e, 'cron.schedule', {
+          reply_markup: {
+            inline_keyboard: [
+              [{
+                text: 'Remove user from db',
+                callback_data: `cleardb=${robot.chatId}:${robot.userId}`
+              }],
+              [{
+                text: 'Remove chat from db',
+                callback_data: `cleardb=${robot.chatId}:null`
+              }]
+            ]
+          }
+        })
+      }
+      if (robot.joinMessageId) {
+        try {
+          await telegram.deleteMessage(robot.chatId, robot.joinMessageId)
+        } catch (e) {}
+      }
+      if (robot.captchaMessageId) {
+        try {
+          await telegram.deleteMessage(robot.chatId, robot.captchaMessageId)
+        } catch (e) {}
       }
       robot.banned = true
       robot.markModified('banned')
       await robot.save()
     }
-    report({ message: `Banned ${robots.length} bots.` })
+    report({
+      message: `Banned ${robots.length} bots.`
+    })
   }
   // collection('robots').deleteMany({ date: { $gte: Date.now() - 1000 * 60 * 60 * 24 * 7 }, banned: { $eq: true } }).exec()
 })

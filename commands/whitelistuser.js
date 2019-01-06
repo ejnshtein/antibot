@@ -1,8 +1,8 @@
-const { bot } = require('./')
 const { onlyAdmin, onlyPublic } = require('../middlewares')
-const { mongodb: { collection } } = require('../database')
+const Composer = require('telegraf/composer')
+const composer = new Composer()
 
-bot.command('addwhite', onlyPublic, onlyAdmin, async ctx => {
+composer.command('addwhite', onlyPublic, onlyAdmin, async ctx => {
   if (ctx.message.reply_to_message) { // ctx.message.reply_to_message.from.id
     if (ctx.message.reply_to_message.from.is_bot) { return ctx.reply('This is bot.') }
     // const whiteListChat = await collection('chats').findOne({ chatId: ctx.chat.id })
@@ -16,7 +16,7 @@ bot.command('addwhite', onlyPublic, onlyAdmin, async ctx => {
         await chatConfig.save()
       }
     } else {
-      await collection('chats').create({
+      await ctx.db.collection('chats').create({
         chatId: ctx.chat.id,
         chatTitle: ctx.chat.title,
         whiteListUsers: [ctx.message.reply_to_message.from.id]
@@ -28,7 +28,7 @@ bot.command('addwhite', onlyPublic, onlyAdmin, async ctx => {
   }
 })
 
-bot.command('removewhite', onlyPublic, onlyAdmin, async ctx => {
+composer.command('removewhite', onlyPublic, onlyAdmin, async ctx => {
   if (ctx.message.reply_to_message) { // ctx.message.reply_to_message.from.id
     if (ctx.message.reply_to_message.from.is_bot) { return ctx.reply('This is bot.') }
     const { chatConfig } = ctx.state
@@ -45,3 +45,7 @@ bot.command('removewhite', onlyPublic, onlyAdmin, async ctx => {
     ctx.reply('To remove someone in whitelist reply to user message with this command')
   }
 })
+
+module.exports = bot => {
+  bot.use(composer.middleware())
+}

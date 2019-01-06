@@ -1,20 +1,20 @@
-const { bot } = require('./')
 const { fromOwner } = require('../middlewares')
-const { mongodb: { collection } } = require('../database')
+const Composer = require('telegraf/composer')
+const composer = new Composer()
 
-bot.hears(/\/addchannel (\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)), async ctx => {
+composer.hears(/\/addchannel (\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)), async ctx => {
   let chatId
   if (/-[0-9]+/i.test(ctx.match[1])) {
     chatId = Number.parseInt(ctx.match[1])
   } else {
     return ctx.reply('I support only numbers')
   }
-  const chat = await collection('whitechannels').findOne({ chatId: chatId }).exec()
+  const chat = await ctx.db.collection('whitechannels').findOne({ chatId: chatId }).exec()
   if (chat) {
     return ctx.reply('Channel already in whitelist')
   } else {
     try {
-      await collection('whitechannels').create({ chatId: Number.parseInt(ctx.match[1]) })
+      await ctx.db.collection('whitechannels').create({ chatId: Number.parseInt(ctx.match[1]) })
     } catch (e) {
       return ctx.reply(e.description)
     }
@@ -22,14 +22,14 @@ bot.hears(/\/addchannel (\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)
   }
 })
 
-bot.hears(/\/removechannel (\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)), async ctx => {
+composer.hears(/\/removechannel (\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)), async ctx => {
   let chatId
   if (/-[0-9]+/i.test(ctx.match[1])) {
     chatId = Number.parseInt(ctx.match[1])
   } else {
     return ctx.reply('Chat id must be number')
   }
-  const chat = await collection('whitechannels').findOne({ chatId: chatId }).exec()
+  const chat = await ctx.db.collection('whitechannels').findOne({ chatId: chatId }).exec()
   if (chat) {
     try {
       await chat.remove()
@@ -41,3 +41,7 @@ bot.hears(/\/removechannel (\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_
     ctx.reply('Channel not in whitelist')
   }
 })
+
+module.exports = bot => {
+  bot.use(composer.middleware())
+}

@@ -32,9 +32,12 @@ const utils = {
           return
         }
       }
-      telegram.sendMessage(process.env.ADMIN_ID, `${prefix ? ` (${prefix})` : ''}:\nMessage: ${err.message || JSON.stringify(err)}\n\`\`\`${JSON.stringify(err, undefined, 2)}\`\`\``, Object.assign({
-        parse_mode: 'markdown'
-      }, extra))
+      telegram.sendMessage(
+        process.env.ADMIN_ID,
+        `${prefix ? ` (${prefix})` : ''}:\nMessage: ${err.message || JSON.stringify(err)}\n\`\`\`${JSON.stringify(err, undefined, 2)}\`\`\``,
+        Object.assign({
+          parse_mode: 'markdown'
+        }, extra))
     } catch (e) {
       console.log(e)
       // Do nothing

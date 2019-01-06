@@ -1,16 +1,20 @@
-const { bot } = require('./')
 const { onlyAdmin, onlyPublic, entityAdsDetector } = require('../middlewares')
 const { sendSuspiciuosMessage } = require('../utils')
 const { mongodb: { collection } } = require('../database')
 
-bot.entity(entityAdsDetector, onlyPublic.isPublic, async (ctx, next) => {
+const Composer = require('telegraf/composer')
+const composer = new Composer()
+
+composer.entity(entityAdsDetector, onlyPublic.isPublic, async (ctx, next) => {
   /* eslint no-mixed-operators: 0 */
   /* eslint operator-linebreak: 0 */
-  const { chatConfig } = ctx.state
+  const {
+    chatConfig
+  } = ctx.state
   if (
-    ctx.chat.isPublic
-    && !await onlyAdmin.isAdmin(ctx)
-    && !chatConfig.whiteListUsers.includes(ctx.from.id)
+    ctx.chat.isPublic &&
+    !await onlyAdmin.isAdmin(ctx) &&
+    !chatConfig.whiteListUsers.includes(ctx.from.id)
   ) {
     if (chatConfig && chatConfig.report && chatConfig.reportChatId) {
       const fwdMessage = await ctx.forwardMessage(chatConfig.reportChatId)
@@ -37,26 +41,32 @@ bot.entity(entityAdsDetector, onlyPublic.isPublic, async (ctx, next) => {
   }
 })
 
-bot.on('message', onlyPublic.isPublic, async (ctx, next) => {
-  const { message } = ctx
-  const { chatConfig } = ctx.state
+composer.on('message', onlyPublic.isPublic, async (ctx, next) => {
+  const {
+    message
+  } = ctx
+  const {
+    chatConfig
+  } = ctx.state
   if (
-    ctx.chat.isPublic
-    && (
+    ctx.chat.isPublic &&
+    (
       message.forward_from_chat &&
       message.forward_from_chat.type === 'channel' &&
       chatConfig.restrictFwdMessageFromChannel ||
       message.forward_from &&
       message.forward_from.is_bot === true &&
       chatConfig.restrictFwdMessageFromBot
-    )
-    && !await onlyAdmin.isAdmin(ctx)
-    && !chatConfig.whiteListUsers.includes(ctx.from.id)
+    ) &&
+    !await onlyAdmin.isAdmin(ctx) &&
+    !chatConfig.whiteListUsers.includes(ctx.from.id)
   ) {
     if (
-      message.forward_from_chat
-      && message.forward_from_chat.type === 'channel'
-      && await collection('whitechannels').findOne({ chatId: message.forward_from_chat.id }).exec()
+      message.forward_from_chat &&
+      message.forward_from_chat.type === 'channel' &&
+      await collection('whitechannels').findOne({
+        chatId: message.forward_from_chat.id
+      }).exec()
     ) {
       return next()
     }
@@ -84,3 +94,7 @@ bot.on('message', onlyPublic.isPublic, async (ctx, next) => {
     next()
   }
 })
+
+module.exports = bot => {
+  bot.use(composer.middleware())
+}

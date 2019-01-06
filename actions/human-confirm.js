@@ -1,13 +1,21 @@
-const { bot } = require('./')
 const { mongodb: { collection } } = require('../database')
+const Composer = require('telegraf/composer')
+const composer = new Composer()
 
-bot.action(/notarobot:(\S+)/i, async ctx => {
-  const { chatConfig } = ctx.state
+composer.action(/notarobot:(\S+)/i, async ctx => {
+  const {
+    chatConfig
+  } = ctx.state
   // console.log(ctx.match)
   if (/[0-9,]+/i.test(ctx.match[1])) {
     const userIds = ctx.match[1].match(/[0-9]+/ig).map(Number.parseInt)
-    if (!userIds.includes(ctx.from.id)) { return ctx.answerCbQuery('This message does not apply to you.') }
-    const user = await collection('robots').findOne({ chatId: ctx.chat.id, userId: ctx.from.id }).exec()
+    if (!userIds.includes(ctx.from.id)) {
+      return ctx.answerCbQuery('This message does not apply to you.')
+    }
+    const user = await collection('robots').findOne({
+      chatId: ctx.chat.id,
+      userId: ctx.from.id
+    }).exec()
     if (user) {
       try {
         await ctx.restrictChatMember(ctx.from.id, {
@@ -24,12 +32,10 @@ bot.action(/notarobot:(\S+)/i, async ctx => {
       if (userIds.filter(id => id !== ctx.from.id).length > 0) {
         ctx.editMessageReplyMarkup({
           inline_keyboard: [
-            [
-              {
-                text: 'I\'m not a robot.',
-                callback_data: `notarobot:${userIds.filter(id => id !== ctx.from.id).join(',')}`
-              }
-            ]
+            [{
+              text: 'I\'m not a robot.',
+              callback_data: `notarobot:${userIds.filter(id => id !== ctx.from.id).join(',')}`
+            }]
           ]
         })
       } else {
@@ -42,3 +48,7 @@ bot.action(/notarobot:(\S+)/i, async ctx => {
     }
   }
 })
+
+module.exports = bot => {
+  bot.use(composer.middleware())
+}

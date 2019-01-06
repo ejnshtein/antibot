@@ -1,8 +1,9 @@
-const { bot } = require('./')
 const { fromOwner } = require('../middlewares')
 // const { mongodb: { collection } } = require('../database')
+const Composer = require('telegraf/composer')
+const composer = new Composer()
 
-bot.hears(/\/leave (\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)), async ctx => {
+composer.hears(/\/leave (\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)), async ctx => {
   const { collection } = ctx
   let chatId
   if (/-[0-9]+/i.test(ctx.match[1])) {
@@ -40,7 +41,8 @@ bot.hears(/\/leave (\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)), as
     })
   }
 })
-bot.action(/leave:(\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)), async ctx => {
+
+composer.action(/leave:(\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)), async ctx => {
   let chatId
   if (/-[0-9]+/i.test(ctx.match[1])) {
     chatId = Number.parseInt(ctx.match[1])
@@ -60,3 +62,7 @@ bot.action(/leave:(\S+)/i, fromOwner(Number.parseInt(process.env.ADMIN_ID)), asy
     ctx.answerCbQuery(`Result: ${isLeavedChat.toString()}`)
   }
 })
+
+module.exports = bot => {
+  bot.use(composer.middleware())
+}

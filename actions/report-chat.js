@@ -1,13 +1,13 @@
-const { bot } = require('./')
+const Composer = require('telegraf/composer')
+const composer = new Composer()
 const { ttlCheck } = require('../middlewares')
-const { telegram } = bot
 const { mongodb: { collection } } = require('../database')
 const { reportMsgTtl, report, isChatAdmin } = require('../utils')
 
-bot.action(/whitelist:(\S+),(\S+),(\S+)/i, ttlCheck(3), async ctx => {
+composer.action(/whitelist:(\S+),(\S+),(\S+)/i, ttlCheck(3), async ctx => {
   const chatId = ctx.match[1]
   const userId = Number.parseInt(ctx.match[2])
-  const user = await telegram.getChatMember(chatId, ctx.from.id)
+  const user = await ctx.telegram.getChatMember(chatId, ctx.from.id)
   if (user && (user.status === 'creator' || user.status === 'administrator')) {
     const chat = await collection('chats').findOne({ chatId: chatId }).exec()
     if (chat) {
@@ -66,15 +66,15 @@ bot.action(/whitelist:(\S+),(\S+),(\S+)/i, ttlCheck(3), async ctx => {
 
 // bot.action(/ban:(\S+),(\S+),(\S+)/i)
 
-bot.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
+composer.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
   const value = ctx.match[1]
   const chatId = ctx.match[2]
   const userId = Number.parseInt(ctx.match[3])
-  const user = await telegram.getChatMember(chatId, ctx.from.id)
+  const user = await ctx.telegram.getChatMember(chatId, ctx.from.id)
   if (user && (user.status === 'creator' || user.status === 'administrator')) {
     if (value === 'ban') {
       try {
-        await telegram.kickChatMember(chatId, userId)
+        await ctx.telegram.kickChatMember(chatId, userId)
       } catch (e) {
         return ctx.answerCbQuery('error: ' + e.description)
       }
@@ -91,7 +91,7 @@ bot.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
       })
     } else if (value === 'unban') {
       try {
-        await telegram.unbanChatMember(chatId, userId)
+        await ctx.telegram.unbanChatMember(chatId, userId)
       } catch (e) {
         return ctx.answerCbQuery('error: ' + e.description)
       }
@@ -116,7 +116,7 @@ bot.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
   }
 })
 
-bot.action(/restore:(\S+),(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
+composer.action(/restore:(\S+),(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
   const chatId = ctx.match[1]
   const fromId = Number.parseInt(ctx.match[2])
   const messageId = Number.parseInt(ctx.match[3])
@@ -141,7 +141,7 @@ bot.action(/restore:(\S+),(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
   }
 })
 
-bot.action(/deleterestored:(\S+),(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
+composer.action(/deleterestored:(\S+),(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
   const chatId = ctx.match[1]
   const fromId = Number.parseInt(ctx.match[2])
   const messageId = Number.parseInt(ctx.match[3])
@@ -175,3 +175,7 @@ bot.action(/deleterestored:(\S+),(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => 
     ctx.answerCbQuery('You have no rigths in this chat.')
   }
 })
+
+module.exports = bot => {
+  bot.use(composer.middleware())
+}

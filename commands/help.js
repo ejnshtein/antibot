@@ -1,6 +1,7 @@
-const { bot } = require('./')
+const Composer = require('telegraf/composer')
+const composer = new Composer()
 
-bot.help(({ reply }) =>
+composer.help(({ reply }) =>
   reply(`
   What this bot can do:
   - Use captcha to filter inactive accounts or bots.  
@@ -14,3 +15,7 @@ bot.help(({ reply }) =>
     disable_web_page_preview: true
   })
 )
+
+module.exports = bot => {
+  bot.use(composer.middleware())
+}
