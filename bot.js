@@ -68,7 +68,7 @@ schedule(' */10 * * * *', async () => { // check 10 mins
       try {
         await telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
       } catch (e) {
-        return report(e, 'cron.schedule', {
+        report(e, 'cron.schedule', {
           reply_markup: {
             inline_keyboard: [
               [{
