@@ -1,22 +1,13 @@
 require('dotenv').config({
   path: './.env'
 })
-const {
-  schedule
-} = require('node-cron')
-const Telegraf = require('telegraf')
-const {
-  mongodb: {
-    collection
-  }
-} = require('./database')
-const {
-  report
-} = require('./utils')
+const { schedule } = require('node-cron')
+const Telegraf = require('telegraf').default
+const { mongodb: { collection } } = require('./database')
+const { filterOldMessages } = require('./middlewares')
+const { report } = require('./utils')
 const bot = new Telegraf(process.env.BOT_TOKEN)
-const {
-  telegram
-} = bot
+const { telegram } = bot
 
 telegram.getMe()
   .then(info => {
@@ -27,12 +18,11 @@ bot.context.collection = collection
 bot.context.db = {
   collection
 }
+bot.use(filterOldMessages(Date.now()))
 
 bot.use(async (ctx, next) => {
   if (ctx.chat.type === 'supergroup' || ctx.chat.type === 'group') {
-    const dbchat = await collection('chats').findOne({
-      chatId: ctx.chat.id
-    }).exec()
+    const dbchat = await collection('chats').findOne({ chatId: ctx.chat.id }).exec()
     if (dbchat) {
       ctx.state = {
         chatConfig: dbchat

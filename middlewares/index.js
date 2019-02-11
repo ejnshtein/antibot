@@ -4,5 +4,6 @@ module.exports = {
   onlyPublic: require('./only-public'),
   ttlCheck: require('./ttl-check'),
   fromOwner: require('./from-owner'),
-  entityAdsDetector: require('./entity-ads-detector')
+  entityAdsDetector: require('./entity-ads-detector'),
+  filterOldMessages: require('./filter-old-messages')
 }
