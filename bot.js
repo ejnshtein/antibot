@@ -18,7 +18,7 @@ bot.context.collection = collection
 bot.context.db = {
   collection
 }
-bot.use(filterOldMessages(Date.now()))
+bot.use(filterOldMessages(Math.floor(Date.now() / 1000)))
 
 bot.use(async (ctx, next) => {
   if (ctx.chat.type === 'supergroup' || ctx.chat.type === 'group') {
