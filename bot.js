@@ -7,9 +7,8 @@ const { mongodb: { collection } } = require('./database')
 const { filterOldMessages } = require('./middlewares')
 const { report } = require('./utils')
 const bot = new Telegraf(process.env.BOT_TOKEN)
-const { telegram } = bot
 
-telegram.getMe()
+bot.telegram.getMe()
   .then(info => {
     bot.options.username = info.username
   })
@@ -55,8 +54,18 @@ schedule(' */10 * * * *', async () => { // check 10 mins
   }).exec()
   if (robots.length) {
     for (const robot of robots) {
+      if (robot.joinMessageId) {
+        try {
+          await bot.telegram.deleteMessage(robot.chatId, robot.joinMessageId)
+        } catch (e) {}
+      }
+      if (robot.captchaMessageId) {
+        try {
+          await bot.telegram.deleteMessage(robot.chatId, robot.captchaMessageId)
+        } catch (e) {}
+      }
       try {
-        await telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
+        await bot.telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
       } catch (e) {
         report(e, 'cron.schedule', {
           reply_markup: {
@@ -73,16 +82,7 @@ schedule(' */10 * * * *', async () => { // check 10 mins
           }
         })
       }
-      if (robot.joinMessageId) {
-        try {
-          await telegram.deleteMessage(robot.chatId, robot.joinMessageId)
-        } catch (e) {}
-      }
-      if (robot.captchaMessageId) {
-        try {
-          await telegram.deleteMessage(robot.chatId, robot.captchaMessageId)
-        } catch (e) {}
-      }
+      console.log(robot)
       robot.banned = true
       robot.markModified('banned')
       await robot.save()
