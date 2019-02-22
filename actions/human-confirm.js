@@ -1,11 +1,8 @@
-const { mongodb: { collection } } = require('../database')
 const Composer = require('telegraf/composer')
 const composer = new Composer()
 
 composer.action(/notarobot:(\S+)/i, async ctx => {
-  const {
-    chatConfig
-  } = ctx.state
+  const { collection, state: { chatConfig } } = ctx
   // console.log(ctx.match)
   if (/[0-9,]+/i.test(ctx.match[1])) {
     const userIds = ctx.match[1].match(/[0-9]+/ig).map(Number.parseInt)

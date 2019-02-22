@@ -1,9 +1,0 @@
-{
-    "database": {
-        "mongodb":{
-            "url":"",
-            "username":"",
-            "password":""
-        }
-    }
-}

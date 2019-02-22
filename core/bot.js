@@ -1,11 +1,8 @@
-require('dotenv').config({
-  path: './.env'
-})
 const { schedule } = require('node-cron')
 const Telegraf = require('telegraf').default
-const { mongodb: { collection } } = require('./database')
-const { filterOldMessages } = require('./middlewares')
-const { report } = require('./utils')
+const collection = require('./database')
+const { filterOldMessages } = require('../middlewares')
+const { telegram: { report } } = require('../lib')
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
 bot.telegram.getMe()
@@ -14,9 +11,6 @@ bot.telegram.getMe()
   })
 
 bot.context.collection = collection
-bot.context.db = {
-  collection
-}
 bot.use(filterOldMessages(Math.floor(Date.now() / 1000)))
 
 bot.use(async (ctx, next) => {
@@ -82,7 +76,7 @@ schedule(' */10 * * * *', async () => { // check 10 mins
           }
         })
       }
-      console.log(robot)
+      // console.log(robot)
       robot.banned = true
       robot.markModified('banned')
       await robot.save()

@@ -1,6 +1,5 @@
 const { onlyAdmin, onlyPublic, entityAdsDetector } = require('../middlewares')
-const { sendSuspiciuosMessage } = require('../utils')
-const { mongodb: { collection } } = require('../database')
+const { telegram: { sendSuspiciuosMessage } } = require('../lib')
 
 const Composer = require('telegraf/composer')
 const composer = new Composer()
@@ -8,9 +7,7 @@ const composer = new Composer()
 composer.entity(entityAdsDetector, onlyPublic.isPublic, async (ctx, next) => {
   /* eslint no-mixed-operators: 0 */
   /* eslint operator-linebreak: 0 */
-  const {
-    chatConfig
-  } = ctx.state
+  const { state: { chatConfig }, collection } = ctx
   if (
     ctx.chat.isPublic &&
     !await onlyAdmin.isAdmin(ctx) &&
@@ -42,12 +39,7 @@ composer.entity(entityAdsDetector, onlyPublic.isPublic, async (ctx, next) => {
 })
 
 composer.on('message', onlyPublic.isPublic, async (ctx, next) => {
-  const {
-    message
-  } = ctx
-  const {
-    chatConfig
-  } = ctx.state
+  const { state: { chatConfig }, collection, message } = ctx
   if (
     ctx.chat.isPublic &&
     (

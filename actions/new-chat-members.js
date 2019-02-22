@@ -1,28 +1,17 @@
-const {
-  templateDetector
-} = require('../middlewares')
+const { templateDetector } = require('../middlewares')
 const Composer = require('telegraf/composer')
 const composer = new Composer()
-const {
-  mongodb: {
-    collection
-  }
-} = require('../database')
 
 composer.on('new_chat_members', templateDetector, async ctx => {
   /* eslint camelcase: 0 */
-  const {
-    chatConfig
-  } = ctx.state
+  const { state: { chatConfig }, collection } = ctx
   if (ctx.message.new_chat_members.some(el => el.is_bot)) {
     const member = await ctx.getChatMember(ctx.message.from.id)
     if (member && (member.status === 'creator' || member.status === 'administrator')) {
       return
     }
   }
-  const {
-    new_chat_members
-  } = ctx.message
+  const { new_chat_members } = ctx.message
 
   if (typeof chatConfig.restrictOtherMessages === 'boolean' && chatConfig.restrictOtherMessages) {
     for (const member of new_chat_members) {

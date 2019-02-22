@@ -2,7 +2,7 @@ const Composer = require('telegraf/composer')
 const composer = new Composer()
 
 composer.action(/cleardb=(\S+):(\S+)/i, async ctx => {
-  const { db } = ctx
+  const { collection } = ctx
   const condition = {
     chatId: Number.parseInt(ctx.match[1])
   }
@@ -10,7 +10,7 @@ composer.action(/cleardb=(\S+):(\S+)/i, async ctx => {
     condition.userId = Number.parseInt(ctx.match[2])
   }
   try {
-    var result = await db.collection('robots').deleteMany(condition).exec()
+    var result = await collection('robots').deleteMany(condition).exec()
   } catch (e) {
     console.log(e)
     return ctx.answerCbQuery('error!')

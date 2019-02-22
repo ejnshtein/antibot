@@ -16,7 +16,7 @@ composer.command('addwhite', onlyPublic, onlyAdmin, async ctx => {
         await chatConfig.save()
       }
     } else {
-      await ctx.db.collection('chats').create({
+      await ctx.collection('chats').create({
         chatId: ctx.chat.id,
         chatTitle: ctx.chat.title,
         whiteListUsers: [ctx.message.reply_to_message.from.id]

@@ -1,10 +1,10 @@
 const Composer = require('telegraf/composer')
 const composer = new Composer()
 const { ttlCheck } = require('../middlewares')
-const { mongodb: { collection } } = require('../database')
-const { reportMsgTtl, report, isChatAdmin } = require('../utils')
+const { telegram: { reportMsgTtl, report, isChatAdmin } } = require('../lib')
 
 composer.action(/whitelist:(\S+),(\S+),(\S+)/i, ttlCheck(3), async ctx => {
+  const { collection } = ctx
   const chatId = ctx.match[1]
   const userId = Number.parseInt(ctx.match[2])
   const user = await ctx.telegram.getChatMember(chatId, ctx.from.id)
@@ -67,6 +67,7 @@ composer.action(/whitelist:(\S+),(\S+),(\S+)/i, ttlCheck(3), async ctx => {
 // bot.action(/ban:(\S+),(\S+),(\S+)/i)
 
 composer.action(/fwd:(\S+)=(\S+),(\S+),(\S+)/i, ttlCheck(4), async ctx => {
+  // const { state: { chatConfig }, collection } = ctx
   const value = ctx.match[1]
   const chatId = ctx.match[2]
   const userId = Number.parseInt(ctx.match[3])

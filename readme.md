@@ -60,8 +60,8 @@ Currently, change these settings can only me (bot developer) so,
 
 ## Note
 
-Also in the bot, there is a whitelist of channels from which the bot allows forwarding of messages.  
-**Only I** can add or delete channels from this list, so contact me if you wanna add a channel to it.
+- There's a whitelist of channels from which the bot allows forwarding of messages. **Only I** can add or delete channels from this list, so contact me if you wanna add a channel to it.
+- If you wanna run a copy of my bot, create `.env` file and fill it the same as shown in `.env.example`.
 
 ## Contact
 
