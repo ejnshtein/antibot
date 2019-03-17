@@ -58,6 +58,12 @@ _*_ - Most of ads-bots use it.
 Currently, change these settings can only me (bot developer) so,  
 **if you want to use your own configs, [contact me.](#contact)**
 
+## Autoban 
+
+Autoban will work on that message(more in future):
+
+<img src='https://i.imgur.com/AdO1apG.png' width='400px' height='auto'>
+
 ## Note
 
 - There's a whitelist of channels from which the bot allows forwarding of messages. **Only I** can add or delete channels from this list, so contact me if you wanna add a channel to it.
