@@ -51,16 +51,12 @@ schedule(' */10 * * * *', async () => { // check 10 mins
       if (robot.joinMessageId) {
         try {
           await bot.telegram.deleteMessage(robot.chatId, robot.joinMessageId)
-        } catch (e) {
-          bot.telegram.sendMessage(robot.chatId, e.message)
-        }
+        } catch (e) {}
       }
       if (robot.captchaMessageId) {
         try {
           await bot.telegram.deleteMessage(robot.chatId, robot.captchaMessageId)
-        } catch (e) {
-          bot.telegram.sendMessage(robot.chatId, e.message)
-        }
+        } catch (e) {}
       }
       try {
         await bot.telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)

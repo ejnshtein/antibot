@@ -12,8 +12,7 @@ composer.action(/cleardb=(\S+):(\S+)/i, async ctx => {
   try {
     var result = await collection('robots').deleteMany(condition).exec()
   } catch (e) {
-    console.log(e)
-    return ctx.answerCbQuery('error!')
+    return ctx.answerCbQuery(e.message)
   }
   if (!condition.userId) {
     try {
