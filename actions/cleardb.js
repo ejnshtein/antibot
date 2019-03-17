@@ -15,7 +15,14 @@ composer.action(/cleardb=(\S+):(\S+)/i, async ctx => {
     console.log(e)
     return ctx.answerCbQuery('error!')
   }
-  ctx.answerCbQuery(`done\n${result.n}`)
+  if (!condition.userId) {
+    try {
+      await ctx.telegram.leaveChat(ctx.match[1])
+    } catch (e) {
+      return ctx.answerCbQuery(e.message)
+    }
+  }
+  ctx.answerCbQuery(`Deleted: \n${result.n}`)
   ctx.editMessageReplyMarkup({ inline_keyboard: [] })
 })
 

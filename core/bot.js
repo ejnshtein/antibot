@@ -51,12 +51,16 @@ schedule(' */10 * * * *', async () => { // check 10 mins
       if (robot.joinMessageId) {
         try {
           await bot.telegram.deleteMessage(robot.chatId, robot.joinMessageId)
-        } catch (e) {}
+        } catch (e) {
+          bot.telegram.sendMessage(robot.chatId, e.message)
+        }
       }
       if (robot.captchaMessageId) {
         try {
           await bot.telegram.deleteMessage(robot.chatId, robot.captchaMessageId)
-        } catch (e) {}
+        } catch (e) {
+          bot.telegram.sendMessage(robot.chatId, e.message)
+        }
       }
       try {
         await bot.telegram.kickChatMember(robot.chatId, robot.userId, Math.round(Date.now() / 1000) + 10)
@@ -69,7 +73,7 @@ schedule(' */10 * * * *', async () => { // check 10 mins
                 callback_data: `cleardb=${robot.chatId}:${robot.userId}`
               }],
               [{
-                text: 'Remove chat from db',
+                text: 'Remove chat from db and leave',
                 callback_data: `cleardb=${robot.chatId}:null`
               }]
             ]

@@ -7,7 +7,7 @@ const composer = new Composer()
 composer.entity(entityAdsDetector, onlyPublic.isPublic, async (ctx, next) => {
   /* eslint no-mixed-operators: 0 */
   /* eslint operator-linebreak: 0 */
-  const { state: { chatConfig }, collection } = ctx
+  const { state: { chatConfig } } = ctx
   if (
     ctx.chat.isPublic &&
     !await onlyAdmin.isAdmin(ctx) &&
@@ -43,6 +43,8 @@ composer.on('message', onlyPublic.isPublic, async (ctx, next) => {
   if (
     ctx.chat.isPublic &&
     (
+      message.text.match(/👉 bit\.ly\/\S+ 👈/ig) ||
+      message.text.match(/Ｔｅｌｅｇｒａｍ Ｍａｒｋｅｔｉｎｇ Ｔｏｏｌｓ/ig) ||
       message.forward_from_chat &&
       message.forward_from_chat.type === 'channel' &&
       chatConfig.restrictFwdMessageFromChannel ||
@@ -56,9 +58,7 @@ composer.on('message', onlyPublic.isPublic, async (ctx, next) => {
     if (
       message.forward_from_chat &&
       message.forward_from_chat.type === 'channel' &&
-      await collection('whitechannels').findOne({
-        chatId: message.forward_from_chat.id
-      }).exec()
+      await collection('whitechannels').findOne({ chatId: message.forward_from_chat.id }).exec()
     ) {
       return next()
     }

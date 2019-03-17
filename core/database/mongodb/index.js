@@ -28,6 +28,11 @@ const collections = [
       banned: { type: Boolean, default: false },
       joinMessageId: { type: Number, required: false },
       captchaMessageId: { type: Number, required: false }
+    }, {
+      timestamps: {
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
+      }
     })
   }, {
     name: 'chats',
@@ -47,6 +52,11 @@ const collections = [
       reportChatId: { type: Number, default: 0, required: false },
       delayBotBan: { type: Number, default: 3600000, required: true },
       customBanDelay: { type: Number, required: false }
+    }, {
+      timestamps: {
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
+      }
     })
   }, {
     name: 'whitechannels',
