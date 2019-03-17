@@ -5,13 +5,15 @@ const composer = new Composer()
 
 composer.on('edited_message',
   onlyPublic,
-  async ctx => {
+  async (ctx, next) => {
     if (ctx.editedMessage.photo && ctx.editedMessage.caption.match(/t\.cn\/\S+/ig)) {
       try {
         await ctx.telegram.kickChatMember(ctx.chat.id, ctx.from.id)
       } catch (e) {
         return ctx.reply(e.message)
       }
+    } else {
+      next()
     }
   })
 
