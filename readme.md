@@ -2,21 +2,21 @@
 
 ## Description
 
-I hate so much an ad-bots activity in my Telegram work chats, so I decided to create a bot witch protects a chat with captcha-like question.
+As all of us are having similar feelings about ad-bots in telegram work chat's I have found solution for  inner peace. 
+Antibot:
+When a new user joins the chat first bot restricts immediately notification and user should confirm being not a robot by clicking "I'm not a robot!". After antibot’s message will be deleted and user allowed join the chat. If the confirmation failed after 24 hour bot will ban user account in chat.
+All forwarded messages from the channels or bots will be detected and deleted immediately by antibot. To allow some users to forward messages you can use `/addwhite` and `/removewhite` commands to add or remove a user from chat whitelist.
+Bot catchs messages containing  `t.me/joinchat/<random-chat-id>` and `t.me/<bot-username>bot?start=somedata` link types. Similar action with whitelist.
+A bot can report user all actions data in a separate chat/channel or even in pm. User will receive a message with all data (chat title, chat username (for public chat) and nickname of suspicious content sender. It gives admins possibility to ban OR add to chat whitelist it immediately. 
 
-- When a user joins a chat, bot immediately restricts him of post any message there, asking him to confirm he isn't a robot. A human may easily confirm it clicking to the "I'm not a robot!" button. If he will click then the bot will delete its message and remove its restrictions. If a newcomer willn't click that button, the bot will wait for 24 hours and ban user's account for this chat.
-- The bot catches all messages which were forwarded by a user from a channel or another bot, and immediately remove them. If you want to allow some users to forward their messages just use `/addwhite` and `/removewhite` commands to add or remove a user from a chat's whitelist.
-- The bot catches all messages which contains links like `t.me/joinchat/<chat-id>` or `t.me/<bot-username>bot?start=somedata`. A whitelist functionality works in the same way like in a previous action.
-- The bot can report about user's actions in another chat, channel or even in a private chat, sending a message object there. Then admins can ban it immediately right here OR add to chat whitelist.
+NOTE: make sure that you are a chat admin before doing an action. 
 
-> NOTE: The bot checks are you an admin of a chat where a suspicious message was sent, before do any action.
+## How to use
 
-## Usage
+Add [@antibotuser_bot](https://t.me/antibotuser_bot) to a chat/superchat and give it admin rights. After bot will work as intended.
+Here's test group where you can have a look how it works: [@antibot_testgroup](https://t.me/antibot_testgroup) .
 
-Just add [@antibotuser_bot](https://t.me/antibotuser_bot) to your group or supergroup and give it an admin permissions.
-There's a testing group, where you can check it work live: [@antibot_testgroup](https://t.me/antibot_testgroup)
-
-## Default chat's configuration
+## Default chat config
 
 ```json
 {
@@ -37,17 +37,17 @@ There's a testing group, where you can check it work live: [@antibot_testgroup](
 
 | Property | Type | Default | Description |
 | - | - | - | - |
-| **`whiteListUsers`** | `number[]` | true |An array of whitelisted user ids. Can be controlled with commands `/addwhite` and `/removewhite` (Use them with *reply* on user message). |
-| **`captcha`** | `boolean` | true | Use captcha feature when user join chat. (It will filter these bots which just join chat without any other actions except sending ads.) |
-| **`forwardMessageAlert`** | `boolean` | true | Send message with info that some actions are forbidden in this chat (forwarding message from channel, from bot or sending message with these links type: `t.me/joinchat` and `t.me/somebotusername?start=data`) |
-| **`restrictFwdMessageFromChannel`** | `boolean` | true | Restrict forwarding message from channels which aren't located in the whitelist. _*_|
+| **`whiteListUsers`** | `number[]` | true |An array of whitelisted user ids. Can be controlled with commands `/addwhite` and `/removewhite` (Use them with reply on user message). |  
+| **`captcha`** | `boolean` | true | Captcha feature is used  when user join chat. (Bots  which just join chat without any other actions except sending ads will be banned). |
+| **`forwardMessageAlert`** | `boolean` | true | Sending message with info that some actions are forbidden in this chat (forwarding message from channel, from bot or sending message with these links type: t.me/joinchat and t.me/somebotusername?start=data) |
+| **`restrictFwdMessageFromChannel`** | `boolean` | true | Restrict forwarding message from channels which not located in white channels list. _*_|
 | **`restrictFwdMessageFromBot`** | `boolean` | true | Restrict forwarding message from bots. |
 | **`restrictJoinchatMessage`** | `boolean` | true | Restrict messages which contains `t.me/joinchat` links type. _*_ |
 | **`restrictBotStartMessage`** | `boolean` | true | Restrict messages which contains `t.me/somebotusername?start=data` links type. _*_ |
 | **`restrictOtherMessages`** | `boolean` | false | Restrict messages from inline bots. (Yes, it will also disable gifs, stickers and games. [Full description](https://core.telegram.org/bots/api#restrictchatmember).) |
 | **`report`** | `boolean` | false | Report suspicious messages to report chat. |
-| **`delayBotBan`** | `number` | 3600000 (ms) | Default ban delay if template detector detects bot-like account. |
 | **`[reportChatId]`** | `number` | 0 | Report chat id |
+| **`delayBotBan`** | `number` | 3600000 (ms) | Default ban delay if template detector detects bot-like account. |
 | **`[customBanDelay]`** | `number` | 0 (ms) | Default ban delay for captcha. |
 
 _*_ - Most of ads-bots use it.
@@ -63,8 +63,9 @@ Autoban will work on that message(more in future):
 
 ## Note
 
-- There's a whitelist of channels from which the bot allows forwarding of messages. **Only I** can add or delete channels from this list, so contact me if you wanna add a channel to it.
-- If you wanna run a copy of my bot, create `.env` file and fill it the same as shown in `.env.example`.
+There's a whitelist of channels from which the bot allows forward messages. 
+Only I can add and delete channels from this list. Contact me in case you want to add a channel to it.
+If you wanna run a copy of my bot, create .env file and fill it the same as shown in .env.example.
 
 ## Contact
 
