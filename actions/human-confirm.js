@@ -20,7 +20,7 @@ composer.action(/notarobot:(\S+)/i, async ctx => {
           can_send_messages: true,
           can_send_media_messages: true,
           can_send_other_messages: typeof chatConfig.restrictOtherMessages === 'boolean' ? !chatConfig.restrictOtherMessages : true,
-          can_add_web_page_previews: true
+          can_invite_users: true
         })
       } catch (e) {
         return ctx.reply(e.description)

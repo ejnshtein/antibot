@@ -65,7 +65,8 @@ composer.on('new_chat_members', templateDetector, async ctx => {
           until_date: Math.round(Date.now() / 1000) + 10, // forever
           can_send_messages: false,
           can_send_media_messages: false,
-          can_add_web_page_previews: false
+          can_add_web_page_previews: false,
+          can_invite_users: false
         })
       } catch (e) {
         return ctx.reply(e.description)
