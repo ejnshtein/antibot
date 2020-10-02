@@ -2,12 +2,12 @@
 
 ## Description
 
-As all of us are having similar feelings about ad-bots in telegram work chat's I have found solution for  inner peace. 
+As all of us are having similar feelings about ad-bots in telegram work chat's. I have found solution for  inner peace. 
 Antibot:
 When a new user joins the chat first bot restricts immediately notification and user should confirm being not a robot by clicking "I'm not a robot!". After antibot’s message will be deleted and user allowed join the chat. If the confirmation failed after 24 hour bot will ban user account in chat.
-All forwarded messages from the channels or bots will be detected and deleted immediately by antibot. To allow some users to forward messages you can use `/addwhite` and `/removewhite` commands to add or remove a user from chat whitelist.
+All forwarded messages from the channels or bots will be detected and deleted immediately by our antibot. To allow some users to forward messages you can use `/addwhite` and `/removewhite` commands to add or remove a user from chat whitelist.
 Bot catchs messages containing  `t.me/joinchat/<random-chat-id>` and `t.me/<bot-username>bot?start=somedata` link types. Similar action with whitelist.
-A bot can report user all actions data in a separate chat/channel or even in pm. User will receive a message with all data (chat title, chat username (for public chat) and nickname of suspicious content sender. It gives admins possibility to ban OR add to chat whitelist it immediately. 
+A bot can report user all actions data in a separate chat/channel or even in pm. User will receive a message with all data (chat title, chat username (for public chat)) and nickname of suspicious content sender. It gives admins possibility to ban OR add to chat whitelist it immediately. 
 
 NOTE: make sure that you are a chat admin before doing an action. 
 
